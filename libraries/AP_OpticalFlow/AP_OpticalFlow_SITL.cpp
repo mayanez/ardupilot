@@ -28,7 +28,7 @@ extern const AP_HAL::HAL& hal;
 AP_OpticalFlow_SITL::AP_OpticalFlow_SITL(OpticalFlow &_frontend) : 
     OpticalFlow_backend(_frontend) 
 {
-    _sitl = (SITL::SITL *)AP_Param::find_object("SIM_");
+    _sitl = SITL::SITL::get_instance();
 }
 
 void AP_OpticalFlow_SITL::init(void)
