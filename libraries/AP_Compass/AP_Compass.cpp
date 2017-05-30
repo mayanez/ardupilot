@@ -24,6 +24,8 @@
 
 extern AP_HAL::HAL& hal;
 
+Compass *Compass::_instance = nullptr;
+
 #if APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduSub)
 #define COMPASS_LEARN_DEFAULT Compass::LEARN_NONE
 #else
