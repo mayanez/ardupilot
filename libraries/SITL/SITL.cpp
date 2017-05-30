@@ -28,6 +28,8 @@ extern const AP_HAL::HAL& hal;
 
 namespace SITL {
 
+    SITL *SITL::_instance = nullptr;
+
 // table of user settable parameters
 const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("BARO_RND",   0, SITL,  baro_noise,  0.2f),

@@ -31,6 +31,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
+AP_Terrain *AP_Terrain::_instance;
+
 extern const AP_HAL::HAL& hal;
 
 // table of user settable parameters
@@ -73,6 +75,12 @@ AP_Terrain::AP_Terrain(AP_AHRS &_ahrs, const AP_Mission &_mission, const AP_Rall
     memset(&home_loc, 0, sizeof(home_loc));
     memset(&disk_block, 0, sizeof(disk_block));
     memset(last_request_time_ms, 0, sizeof(last_request_time_ms));
+
+    if (_instance != nullptr) {
+        AP_HAL::panic("AP_Terrain must be singleton");
+    }
+
+    _instance = this;
 }
 
 /*

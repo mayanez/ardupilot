@@ -33,6 +33,7 @@ struct sitl_fdm {
 #define SITL_NUM_CHANNELS 16
 
 class SITL {
+
 public:
 
     SITL() {
@@ -167,6 +168,16 @@ public:
 
     // convert a set of roll rates from body frame to earth frame
     static Vector3f convert_earth_frame(const Matrix3f &dcm, const Vector3f &gyro);
+
+    static SITL *get_instance(void) {
+        if (!_instance) {
+            _instance = new SITL();
+        }
+        return _instance;
+    }
+
+private:
+    static SITL *_instance;
 };
 
 } // namespace SITL

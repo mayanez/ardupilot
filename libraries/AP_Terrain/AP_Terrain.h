@@ -174,7 +174,14 @@ public:
      */
     void get_statistics(uint16_t &pending, uint16_t &loaded);
 
+    static AP_Terrain *get_instance(void) {
+        return _instance;
+    }
+
 private:
+
+    static AP_Terrain *_instance;
+
     // allocate the terrain subsystem data
     bool allocate(void);
 

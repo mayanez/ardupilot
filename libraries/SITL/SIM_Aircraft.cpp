@@ -61,7 +61,7 @@ Aircraft::Aircraft(const char *home_str, const char *frame_str) :
 #endif
 {
     // make the SIM_* variables available to simulator backends
-    sitl = (SITL *)AP_Param::find_object("SIM_");
+    sitl = SITL::SITL::get_instance();
     parse_home(home_str, home, home_yaw);
     location = home;
     ground_level = home.alt * 0.01f;
@@ -73,7 +73,7 @@ Aircraft::Aircraft(const char *home_str, const char *frame_str) :
     last_wall_time_us = get_wall_time_us();
     frame_counter = 0;
 
-    terrain = (AP_Terrain *)AP_Param::find_object("TERRAIN_");
+    terrain = AP_Terrain::get_instance();
 }
 
 
