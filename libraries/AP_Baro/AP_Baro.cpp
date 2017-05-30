@@ -48,6 +48,8 @@
 
 extern const AP_HAL::HAL& hal;
 
+AP_Baro *AP_Baro::_instance = nullptr;
+
 // table of user settable parameters
 const AP_Param::GroupInfo AP_Baro::var_info[] = {
     // NOTE: Index numbers 0 and 1 were for the old integer

@@ -156,11 +156,16 @@ public:
     void set_pressure_correction(uint8_t instance, float p_correction);
 
     static AP_Baro *get_instance(void) {
-        static AP_Baro _instance;
-        return &_instance;
+        if (!_instance) {
+            _instance = new AP_Baro();
+        }
+
+        return _instance;
     }
 
 private:
+    static AP_Baro *_instance;
+
     // how many drivers do we have?
     uint8_t _num_drivers;
     AP_Baro_Backend *drivers[BARO_MAX_DRIVERS];

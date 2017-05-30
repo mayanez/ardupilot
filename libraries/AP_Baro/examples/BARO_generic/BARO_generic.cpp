@@ -6,7 +6,15 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_HAL/AP_HAL.h>
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#include <SITL/SITL.h>
+#endif
+
 const AP_HAL::HAL &hal = AP_HAL::get_HAL();
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+static SITL::SITL sitl;
+#endif
 
 static AP_Baro barometer;
 
@@ -15,6 +23,15 @@ static uint8_t counter;
 
 void setup();
 void loop();
+
+void load_parameters(void) {
+    if (!AP_Param::check_var_info()) {
+        hal.console->printf("Bad var table\n");
+        AP_HAL::panic("bad var table");
+    }
+
+    AP_Param::load_all(false);
+}
 
 void setup()
 {
@@ -26,6 +43,10 @@ void setup()
 
     barometer.init();
     barometer.calibrate();
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    load_parameters();
+#endif
 
     timer = AP_HAL::micros();
 }
