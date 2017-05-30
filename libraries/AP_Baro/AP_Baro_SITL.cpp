@@ -12,7 +12,7 @@ extern const AP_HAL::HAL& hal;
 AP_Baro_SITL::AP_Baro_SITL(AP_Baro &baro) :
     AP_Baro_Backend(baro)
 {
-    sitl = (SITL::SITL *)AP_Param::find_object("SIM_");
+    sitl = SITL::SITL::get_instance();
     if (sitl != nullptr) {
         instance = _frontend.register_sensor();
     }
