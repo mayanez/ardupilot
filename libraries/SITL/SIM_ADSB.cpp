@@ -74,7 +74,7 @@ void ADSB_Vehicle::update(float delta_t)
 void ADSB::update(void)
 {
     if (_sitl == nullptr) {
-        _sitl = (SITL *)AP_Param::find_object("SIM_");
+        _sitl = SITL::SITL::get_instance();
         return;
     } else if (_sitl->adsb_plane_count <= 0) {
         return;
