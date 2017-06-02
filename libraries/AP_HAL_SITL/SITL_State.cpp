@@ -75,13 +75,13 @@ void SITL_State::_sitl_setup(const char *home_str)
 #endif
     fprintf(stdout, "Starting SITL input\n");
 
+    _sitl = SITL::SITL::get_instance();
     // find the barometer object if it exists
-    _sitl = (SITL::SITL *)AP_Param::find_object("SIM_");
-    _barometer = (AP_Baro *)AP_Param::find_object("GND_");
-    _ins = (AP_InertialSensor *)AP_Param::find_object("INS_");
-    _compass = (Compass *)AP_Param::find_object("COMPASS_");
+    _barometer = AP_Baro::get_instance();
+    _ins = AP_InertialSensor::get_instance();
+    _compass = Compass::get_instance();
 #if AP_TERRAIN_AVAILABLE
-    _terrain = (AP_Terrain *)AP_Param::find_object("TERRAIN_");
+    _terrain = AP_Terrain::get_instance();
 #endif
 
     if (_sitl != nullptr) {
