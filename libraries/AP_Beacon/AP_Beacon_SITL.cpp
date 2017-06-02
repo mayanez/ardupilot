@@ -43,7 +43,7 @@ extern const AP_HAL::HAL& hal;
 AP_Beacon_SITL::AP_Beacon_SITL(AP_Beacon &frontend) :
     AP_Beacon_Backend(frontend)
 {
-    sitl = (SITL::SITL *)AP_Param::find_object("SIM_");
+    sitl = SITL::SITL::get_instance();
 }
 
 // return true if sensor is basically healthy (we are receiving data)
