@@ -64,6 +64,18 @@ def options(opt):
         default=False,
         help='Configure as debug variant.')
 
+    g.add_option('--sensorhead-master',
+        action='store_true',
+        default=False,
+        help='Configure as SensorHead master'
+    )
+
+    g.add_option('--sensorhead-slave',
+        action='store_true',
+        default=False,
+        help='Configure as SensorHead slave'
+    )
+
     g.add_option('--no-autoconfig',
         dest='autoconfig',
         action='store_false',
@@ -135,6 +147,9 @@ def configure(cfg):
 
     cfg.env.BOARD = cfg.options.board
     cfg.env.DEBUG = cfg.options.debug
+
+    cfg.env.SENSORHEAD_MASTER = cfg.options.sensorhead_master
+    cfg.env.SENSORHEAD_SLAVE= cfg.options.sensorhead_slave
 
     # Allow to differentiate our build from the make build
     cfg.define('WAF_BUILD', 1)

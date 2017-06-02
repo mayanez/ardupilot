@@ -10,10 +10,18 @@
 #include <SITL/SITL.h>
 #endif
 
+#if HAL_WITH_SENSORHEAD
+#include <AP_SensorHead/AP_SensorHead.h>
+#endif
+
 const AP_HAL::HAL &hal = AP_HAL::get_HAL();
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 static SITL::SITL sitl;
+#endif
+
+#if HAL_WITH_SENSORHEAD
+static AP_SensorHead *sensorhead = AP_SensorHead::get_instance();
 #endif
 
 static AP_Baro barometer;
@@ -38,6 +46,10 @@ void setup()
     hal.console->printf("Barometer library test\n");
 
     AP_BoardConfig{}.init();
+
+#if HAL_WITH_SENSORHEAD
+    sensorhead->setUART(hal.console);
+#endif
 
     hal.scheduler->delay(1000);
 

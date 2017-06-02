@@ -37,6 +37,9 @@
 #if HAL_WITH_UAVCAN
 #include "AP_Baro_UAVCAN.h"
 #endif
+#if HAL_WITH_SENSORHEAD
+#include "AP_Baro_SensorHead.h"
+#endif
 
 #define C_TO_KELVIN 273.15f
 // Gas Constant is from Aerodynamics for Engineering Students, Third Edition, E.L.Houghton and N.B.Carruthers
@@ -390,6 +393,10 @@ void AP_Baro::init(void)
         _num_drivers = 1;
         return;
     }
+
+#if HAL_WITH_SENSORHEAD
+    ADD_BACKEND(new AP_Baro_SensorHead(*this));
+#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     ADD_BACKEND(new AP_Baro_SITL(*this));

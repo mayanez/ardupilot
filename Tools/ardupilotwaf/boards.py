@@ -69,6 +69,11 @@ class Board:
         # make easy to override them. Convert back to list before consumption.
         env.DEFINES = {}
 
+        if cfg.env.SENSORHEAD_MASTER:
+            env.DEFINES.update(CONFIG_SENSORHEAD = 'SENSORHEAD_MASTER')
+        elif cfg.env.SENSORHEAD_SLAVE:
+            env.DEFINES.update(CONFIG_SENSORHEAD = 'SENSORHEAD_SLAVE')
+
         env.CFLAGS += [
             '-ffunction-sections',
             '-fdata-sections',
