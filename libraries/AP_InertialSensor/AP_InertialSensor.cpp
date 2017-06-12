@@ -20,6 +20,7 @@
 #include "AP_InertialSensor_QURT.h"
 #include "AP_InertialSensor_SITL.h"
 #include "AP_InertialSensor_qflight.h"
+#include "AP_InertialSensor_SensorHead.h"
 
 /* Define INS_TIMING_DEBUG to track down scheduling issues with the main loop.
  * Output is on the debug console. */
@@ -673,6 +674,12 @@ AP_InertialSensor::detect_backends(void)
         _add_backend(AP_InertialSensor_HIL::detect(*this));
         return;
     }
+
+#if HAL_SHEAD_ENABLED
+    // TODO: Is this correct?
+    _add_backend(AP_InertialSensor_SensorHead::detect(*this));
+#endif
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     _add_backend(AP_InertialSensor_SITL::detect(*this));
 #elif HAL_INS_DEFAULT == HAL_INS_HIL

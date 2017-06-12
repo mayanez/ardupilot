@@ -215,6 +215,7 @@ class sitl(Board):
         env.DEFINES.update(
             CONFIG_HAL_BOARD = 'HAL_BOARD_SITL',
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_NONE',
+            HAL_SHEAD_ENABLED = 'SHEAD_ENABLE',
         )
 
         if not cfg.env.DEBUG:
