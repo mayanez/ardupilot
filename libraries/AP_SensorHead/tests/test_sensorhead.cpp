@@ -7,7 +7,8 @@ const AP_HAL::HAL &hal = AP_HAL::get_HAL();
 
 class SensorHeadTest : public testing::Test {
 protected:
-    BaroMessage msg;
+    uint8_t buf[BaroMessage::PACKET_LENGTH];
+    BaroMessage msg{buf, sizeof(buf)};
     AP_SensorHead sHead;
 
     virtual void SetUp() {
@@ -26,22 +27,10 @@ public:
     bool getMessageHandled() { return messageHandled; }
 };
 
-class UnknownMessageHandler : public AP_SensorHead_Handler<UnknownMessage> {
-public:
-    bool messageHandled;
-
-    void handle(BaroMessage::data_t *data) {
-        messageHandled = true;
-    }
-
-    bool getMessageHandled() { return messageHandled; }
-};
-
 TEST_F(SensorHeadTest, handler)
 {
     BaroMessageHandler handler;
-    Packet *p = msg.encode();
-    Packet::raw_t *packet = p->raw();
+    Packet::raw_t *packet = msg.encode();
 
     sHead.registerHandler(&handler);
     EXPECT_FALSE(handler.getMessageHandled());

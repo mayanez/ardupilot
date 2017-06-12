@@ -18,42 +18,51 @@ public:
     virtual void handle(typename T::data_t *data) = 0;
 };
 
+/*
+ * SensorHead Main Class
+ * NOTE: Must be initialized before the Sensors, otherwise registerSensor will
+ * fail.
+ */
 class AP_SensorHead {
 public:
+    // TODO: What is the right number here?
+    /* Receive Thread Rate */
+    static const uint16_t UPDATE_RATE_HZ = 400;
 
-    AP_SensorHead &baro(AP_Baro *baro) {
+    AP_SensorHead();
+
+    /* Sensor Registration */
+    void registerSensor(AP_Baro *baro)
+    {
         _baro = baro;
-        return *this;
     }
-
-    AP_SensorHead &ins(AP_InertialSensor *ins) {
+    void registerSensor(AP_InertialSensor *ins)
+    {
         _ins = ins;
-        return *this;
     }
 
-    // TODO: Will this be too cumbersome? Template approach might be too memory
-    // intensive.
-    AP_SensorHead &
-    registerHandler(AP_SensorHead_Handler<BaroMessage> *handler) {
-      _baroHandler = handler;
-      return *this;
+
+    /* Handler Registration */
+    void registerHandler(AP_SensorHead_Handler<BaroMessage> *handler)
+    {
+        _baroHandler = handler;
     }
 
-    AP_SensorHead &
-    registerHandler(AP_SensorHead_Handler<InertialSensorMessage> *handler) {
-      _insHandler = handler;
-      return *this;
+    void
+    registerHandler(AP_SensorHead_Handler<InertialSensorMessage> *handler)
+    {
+        _insHandler = handler;
     }
 
-    AP_SensorHead &
-    registerHandler(AP_SensorHead_Handler<UnknownMessage> *handler) {
+    void registerHandler(AP_SensorHead_Handler<UnknownMessage> *handler)
+    {
         _defaultHandler = handler;
-        return *this;
     }
 
     /* Singleton methods */
     static AP_SensorHead *init();
-    static AP_SensorHead *get_instance() {
+    static AP_SensorHead *get_instance()
+    {
         if (_initialized) {
             return &_instance;
         }
@@ -65,21 +74,33 @@ public:
      * handler.
      */
     void handlePacket(Packet::raw_t *packet);
-    bool recv(uint8_t *buf, uint32_t len);
 
     /*
-     * Poll AP_Baro & create BaroMessage & write to stream.
+     * Given a buffer decode packet & call handler.
      */
-    bool send_baro(AP_HAL::Stream *stream);
-    bool send_ins(AP_HAL::Stream *stream);
+    bool read(uint8_t *buf, size_t len);
 
-  private:
+    /*
+     * Each Message type implements a specialized write()
+     * NOTE: Taking buf as argument allows for greater flexibility, but maybe it
+     * makes sense make member variable.
+     */
+    template <class T>
+    void  write(uint8_t *buf, size_t len);
+
+private:
     static bool _initialized;
     static AP_SensorHead _instance;
+
     // TODO: Add more sensors.
     AP_Baro *_baro;
     AP_InertialSensor *_ins;
+
+    /* Message Handlers */
     AP_SensorHead_Handler<BaroMessage> *_baroHandler;
     AP_SensorHead_Handler<InertialSensorMessage> *_insHandler;
     AP_SensorHead_Handler<UnknownMessage> *_defaultHandler;
+
+    AP_HAL::Util::perf_counter_t _perf_read;
+    AP_HAL::Util::perf_counter_t _perf_write;
 };

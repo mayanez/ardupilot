@@ -1,31 +1,45 @@
 #include "AP_SensorHead.h"
 
+extern const AP_HAL::HAL& hal;
+
 using namespace SensorHead;
 
 AP_SensorHead AP_SensorHead::_instance{};
 bool AP_SensorHead::_initialized = false;
 
-AP_SensorHead *AP_SensorHead::init() {
+AP_SensorHead *AP_SensorHead::init()
+{
     _initialized = true;
     return &_instance;
 }
 
-void AP_SensorHead::handlePacket(Packet::raw_t *packet) {
+AP_SensorHead::AP_SensorHead()
+{
+    // TODO: Segfault for some reason.
+    // _perf_read = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "shead_read");
+    // _perf_write = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "shead_write");
+}
 
-    switch(Packet::id(packet)) {
-    case msgid_t::BARO:
-    {
-        if(!Message::verify<BaroMessage>(packet)) return;
-        BaroMessage::data_t *data = Message::decode<BaroMessage>(packet);
-        _baroHandler->handle(data);
-        break;
-    }
-    case msgid_t::INS:
-    {
-        if(!Message::verify<InertialSensorMessage>(packet)) return;
+void AP_SensorHead::handlePacket(Packet::raw_t *packet)
+{
+
+    // TODO: Order according to frequency of appearance.
+    switch (Packet::id(packet)) {
+    case msgid_t::INS: {
+        if (!Message::verify<InertialSensorMessage>(packet)) {
+            return;
+        }
         InertialSensorMessage::data_t *data =
             Message::decode<InertialSensorMessage>(packet);
         _insHandler->handle(data);
+        break;
+    }
+    case msgid_t::BARO: {
+        if (!Message::verify<BaroMessage>(packet)) {
+            return;
+        }
+        BaroMessage::data_t *data = Message::decode<BaroMessage>(packet);
+        _baroHandler->handle(data);
         break;
     }
     default:
@@ -34,36 +48,44 @@ void AP_SensorHead::handlePacket(Packet::raw_t *packet) {
     }
 }
 
-bool AP_SensorHead::recv(uint8_t *buf, uint32_t len) {
-    Packet::raw_t *p = nullptr;
-    bool decoded = Packet::decode(p, buf, len);
-    if(decoded) {
-        handlePacket(p);
+bool AP_SensorHead::read(uint8_t *buf, size_t len)
+{
+    // TODO: Is there a decorator for these?
+    // hal.util->perf_begin(_perf_read);
+
+    Packet::raw_t p;
+    bool decoded = Packet::decode(&p, buf, len);
+    if (decoded) {
+        handlePacket(&p);
     }
+
+    // hal.util->perf_end(_perf_read);
+
     return decoded;
 }
 
-bool AP_SensorHead::send_baro(AP_HAL::Stream *stream) {
-    BaroMessage msg;
-    msg.pressure(_baro->get_pressure()).
-        temperature(_baro->get_temperature());
+template <>
+void AP_SensorHead::write<BaroMessage>(uint8_t *buf, size_t len)
+{
+    // hal.util->perf_begin(_perf_write);
 
-    Packet *packet = msg.encode();
+    BaroMessage msg{buf, len};
+    msg.setPressure(_baro->get_pressure());
+    msg.setTemperature(_baro->get_temperature());
+    msg.encode();
 
-    size_t bytes = stream->write(reinterpret_cast<uint8_t *>(packet->raw()),
-                    packet->length());
-
-    return bytes == packet->length();
+    // hal.util->perf_end(_perf_write);
 }
 
-bool AP_SensorHead::send_ins(AP_HAL::Stream *stream) {
-    InertialSensorMessage msg;
-    msg.gyro(_ins->get_gyro());
+template <>
+void AP_SensorHead::write<InertialSensorMessage>(uint8_t *buf, size_t len)
+{
+    // hal.util->perf_begin(_perf_write);
 
-    Packet *packet = msg.encode();
+    InertialSensorMessage msg{buf, len};
+    msg.setGyro(_ins->get_gyro());
+    msg.setAccel(_ins->get_accel());
+    msg.encode();
 
-    size_t bytes = stream->write(reinterpret_cast<uint8_t *>(packet->raw()),
-                    packet->length());
-
-    return bytes == packet->length();
+    // hal.util->perf_end(_perf_write);
 }

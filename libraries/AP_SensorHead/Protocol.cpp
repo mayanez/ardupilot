@@ -2,43 +2,52 @@
 
 using namespace SensorHead;
 
-Packet::Packet()
+template <class T>
+bool Packet::setup(raw_t *p, uint8_t *buf, size_t len)
 {
-    _packet.hdr = &_hdr;
-    _packet.data = reinterpret_cast<uint8_t *>(&_data);
-    _packet.crc = &_crc;
+    if (len < T::PACKET_LENGTH) {
+        return false;
+    }
+
+    p->hdr  = reinterpret_cast<shead_hdr_t *>(buf);
+    p->data = reinterpret_cast<uint8_t *>(buf + sizeof(shead_hdr_t));
+    p->crc  = reinterpret_cast<shead_crc_t *>(buf + sizeof(shead_hdr_t) +
+              sizeof(typename T::data_t));
+
+    return true;
 }
 
 template <class T>
-void Packet::encode(T *msg) {
-    _packet.hdr->magic = MAGIC;
-    _packet.hdr->ver = VERSION;
-    _packet.hdr->id = T::ID;
-    _packet.hdr->len = sizeof(typename T::data_t);
+void Packet::encode(raw_t *p)
+{
+    p->hdr->magic = MAGIC;
+    p->hdr->ver   = VERSION;
+    p->hdr->id    = T::ID;
+    p->hdr->len   = sizeof(typename T::data_t);
 
-    *_packet.crc = crc16_ccitt(
-        reinterpret_cast<uint8_t *>(_packet.hdr),
-        sizeof(shead_hdr_t), 0);
-    *_packet.crc = crc16_ccitt(_packet.data, _packet.hdr->len, *_packet.crc);
+    *p->crc = crc16_ccitt(reinterpret_cast<uint8_t *>(p->hdr),
+                          sizeof(shead_hdr_t), 0);
+    *p->crc = crc16_ccitt(p->data, p->hdr->len, *p->crc);
 }
 
-bool Packet::verify(raw_t *p) {
+bool Packet::verify(raw_t *p)
+{
 
     shead_crc_t calc_crc = 0;
-    bool preCheck = p->hdr->magic == MAGIC
-        && p->hdr->ver == VERSION;
+    bool preCheck = p->hdr->magic == MAGIC && p->hdr->ver == VERSION;
 
     // No point in calculating CRC otherwise.
     if (preCheck) {
         calc_crc = crc16_ccitt(reinterpret_cast<uint8_t *>(p->hdr),
-                                         sizeof(shead_hdr_t), 0);
+                               sizeof(shead_hdr_t), 0);
         calc_crc = crc16_ccitt(p->data, p->hdr->len, calc_crc);
     }
 
     return preCheck && calc_crc == *p->crc;
 }
 
-bool Packet::decode(raw_t *p, uint8_t *buf, uint16_t len) {
+bool Packet::decode(raw_t *p, uint8_t *buf, size_t len)
+{
 
     // Assumes packet & data in buf. (eg. HDR | DATA | CRC)
     if (len > MAX_PACKET_LEN) {
@@ -70,24 +79,25 @@ bool Packet::decode(raw_t *p, uint8_t *buf, uint16_t len) {
     return false;
 }
 
-uint8_t *Packet::findMagic(uint8_t *buf, uint16_t len) {
+uint8_t *Packet::findMagic(uint8_t *buf, size_t len)
+{
 
     // Don't bother searching
-    if(len < EMPTY_PACKET_LEN) {
+    if (len < EMPTY_PACKET_LEN) {
         return nullptr;
     }
 
     uint8_t byte = 0;
     size_t remainingBytes = len;
 
-    for (int i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         if (remainingBytes < EMPTY_PACKET_LEN) {
             // Impossible to find a valid packet.
             break;
         }
 
         byte = *(buf + i);
-        if(byte == MAGIC) {
+        if (byte == MAGIC) {
             return (buf + i);
         }
     }
@@ -95,5 +105,31 @@ uint8_t *Packet::findMagic(uint8_t *buf, uint16_t len) {
     return nullptr;
 }
 
-template void Packet::encode<BaroMessage>(BaroMessage *msg);
-template void Packet::encode<InertialSensorMessage>(InertialSensorMessage *msg);
+/* Template Specializations */
+template void Packet::encode<BaroMessage>(raw_t *p);
+template void Packet::encode<InertialSensorMessage>(raw_t *p);
+
+template bool Packet::setup<BaroMessage>(raw_t *p, uint8_t *buf, size_t len);
+template bool Packet::setup<InertialSensorMessage>(raw_t *p, uint8_t *buf, size_t len);
+
+/* Message Constructors */
+// TODO: Refactor this into base class constructor.
+BaroMessage::BaroMessage(uint8_t *buf, size_t len)
+{
+    bool init = Packet::setup<BaroMessage>(&_packet, buf, len);
+    _data = reinterpret_cast<data_t *>(_packet.data);
+
+    if (!init) {
+        AP_HAL::panic("Failed to setup");
+    }
+}
+
+InertialSensorMessage::InertialSensorMessage(uint8_t *buf, size_t len)
+{
+    bool init = Packet::setup<InertialSensorMessage>(&_packet, buf, len);
+    _data = reinterpret_cast<data_t *>(_packet.data);
+
+    if (!init) {
+        AP_HAL::panic("Failed to setup");
+    }
+}
