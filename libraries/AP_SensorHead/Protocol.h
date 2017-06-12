@@ -1,182 +1,216 @@
 #pragma once
 
+#include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 
 namespace SensorHead {
 
-    enum class msgid_t : uint8_t;
+enum class msgid_t : uint8_t;
 
-    /* Packet structure */
-    class Packet {
-    public:
-        static const uint8_t MAGIC = 0xFC;
-        static const uint8_t VERSION = 0;
+/* Packet structure */
+class Packet {
+public:
+    static const uint8_t MAGIC = 0xFC;
+    static const uint8_t VERSION = 0;
 
-        typedef struct PACKED {
-            uint8_t magic;
-            uint8_t ver;
-            uint8_t len;
-            msgid_t id;
-        } shead_hdr_t;
+    // float conforms to IEEE 754.
+    // NOTE: May not be entirely reliable, but should be sufficient.
+    // https://stackoverflow.com/questions/5777484/how-to-check-if-c-compiler-uses-ieee-754-floating-point-standard
+    static_assert(std::numeric_limits<float>::is_iec559);
 
-        typedef uint16_t shead_crc_t;
+    typedef struct PACKED {
+        uint8_t magic;
+        uint8_t ver;
+        uint8_t len;
+        msgid_t id;
+    } shead_hdr_t;
 
-        typedef struct PACKED {
-            shead_hdr_t *hdr;
-            uint8_t *data;
-            shead_crc_t *crc;
-        } shead_packet_t;
+    typedef uint16_t shead_crc_t;
 
-        typedef shead_packet_t raw_t;
+    // This is to allow packets to be read/write from buffer.
+    // NOTE: Stack usage for message is constant.
+    typedef struct PACKED {
+        shead_hdr_t *hdr;
+        uint8_t *data;
+        shead_crc_t *crc;
+    } shead_packet_t;
 
-        static const size_t MAX_PACKET_LEN =
-            sizeof(shead_hdr_t) + UINT8_MAX + sizeof(shead_crc_t);
-        static const size_t EMPTY_PACKET_LEN = sizeof(shead_hdr_t) + sizeof(shead_crc_t);
+    typedef shead_packet_t raw_t;
 
-        Packet();
+    static const size_t MAX_DATA_LEN = UINT8_MAX;
 
-        /*
-         * raw_t is used by receiver to make decode from buffer simpler and avoid
-         * copy overheads.
-         */
-        raw_t *raw() { return &_packet; }
+    static const size_t MAX_PACKET_LEN =
+        sizeof(shead_hdr_t) + MAX_DATA_LEN + sizeof(shead_crc_t);
 
-        msgid_t id() { return _packet.hdr->id; }
+    static const size_t EMPTY_PACKET_LEN =
+        sizeof(shead_hdr_t) + sizeof(shead_crc_t);
 
-        size_t length() {
-            return sizeof(shead_hdr_t) + _packet.hdr->len + sizeof(shead_crc_t);
-        }
+    static size_t length(raw_t *p)
+    {
+        return sizeof(shead_hdr_t) + p->hdr->len + sizeof(shead_crc_t);
+    }
 
-        uint8_t *data() { return _packet.data; }
+    /*
+     * Given a buffer point p to appropriate offsets.
+     */
+    // TODO: Consider changing them all to use Iterators & std::array
+    template <class T> static bool setup(raw_t *p, uint8_t *buf, size_t len);
 
-        /*
-         * Encodes a message of type T into a packet.
-         */
-        template <class T>
-        void encode(T *msg);
+    /*
+     * Encodes a message of type T into a packet.
+     */
+    template <class T> static void encode(raw_t *p);
 
-        /* Verifies that a raw_t is valid. */
-        static bool verify(raw_t *p);
+    /* Verifies that a raw_t is valid. */
+    static bool verify(raw_t *p);
 
-        /*
-         * Points p to proper contents inside buf.
-         * NOTE: This is done to avoid copy overhead.
-         */
-        static bool decode(raw_t *p, uint8_t *buf, uint16_t len);
+    /*
+     * Points p to proper offsets inside buf.
+     */
+    static bool decode(raw_t *p, uint8_t *buf, size_t len);
 
-        static msgid_t id(raw_t *p) {
-            return p->hdr->id;
-        }
+    static msgid_t id(raw_t *p)
+    {
+        return p->hdr->id;
+    }
 
-    private:
-        raw_t _packet;
-        uint8_t _data[UINT8_MAX];
-        shead_hdr_t _hdr;
-        shead_crc_t _crc;
+private:
+    /*
+     * Find first instance of MAGIC.
+     */
+    static uint8_t *findMagic(uint8_t *buf, size_t len);
+};
 
-        /*
-         * Find first instance of MAGIC.
-         */
-        static uint8_t *findMagic(uint8_t *buf, uint16_t len);
-    };
+// TODO: update this according to handler order. Refer to loop frequencies
+// for different vehicles.
+enum class msgid_t : uint8_t {
+    UNKNOWN,
+    INS,
+    RCIN,
+    RCOUT,
+    BARO,
+    COMPASS,
+};
+// TODO: Define remaining message types.
 
-    /* Message Structure */
-    enum class msgid_t : uint8_t {
-        UNKNOWN,
-        BARO,
-        INS,
-    };
+class Message {
+public:
+    /*
+     * Encodes message contents inside buffer
+     */
+    virtual Packet::raw_t *encode() = 0;
 
-    class Message {
-    public:
-        /*
-         * Encode Message inside packet.
-         */
-        virtual Packet *encode() = 0;
+    /*
+     * Retrieve pointer to data inside of packet.
+     */
+    template <class T> static typename T::data_t *decode(Packet::raw_t *packet)
+    {
+        return reinterpret_cast<typename T::data_t *>(packet->data);
+    }
 
-        template <class T>
-        static typename T::data_t *decode(Packet::raw_t *packet) {
-            return reinterpret_cast<typename T::data_t *>(packet->data);
-        }
+    /*
+     * Verify if a valid packet is actually of type T
+     */
+    template <class T> static bool verify(Packet::raw_t *packet)
+    {
+        return packet->hdr->id == T::ID &&
+               packet->hdr->len == sizeof(typename T::data_t);
+    }
 
-        /*
-         * Verify if a valid packet is actually of type T
-         */
-        template <class T>
-        static bool verify(Packet::raw_t *packet) {
-            return packet->hdr->id == T::ID
-                && packet->hdr->len == sizeof(typename T::data_t);
-        }
+protected:
+    Packet::raw_t _packet;
+};
 
-    protected:
-        Packet _packet;
-    };
+class UnknownMessage : public Message {
+public:
+    static const msgid_t ID = msgid_t::UNKNOWN;
+    typedef uint8_t data_t;
 
-    class UnknownMessage : public Message {
-    public:
-        static const msgid_t ID = msgid_t::UNKNOWN;
-        typedef uint8_t data_t;
+    virtual Packet::raw_t *encode()
+    {
+        return nullptr;
+    }
+};
 
-        // Not used.
-        Packet *encode() { return nullptr; };
-    };
+class BaroMessage : public Message {
+public:
+    // TODO: complete definition
+    typedef struct PACKED {
+        float pressure;
+        float temperature;
+    } data_t;
 
-    /* Baro */
-    class BaroMessage : public Message {
-    public:
+    // NOTE: If this fails, need to change len data type
+    static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN);
 
-        // TODO: complete definition
-        typedef struct PACKED {
-            float pressure;
-            float temperature;
-        } data_t;
+    static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
 
-        data_t *data = reinterpret_cast<data_t *>(_packet.data());
-        static const msgid_t ID = msgid_t::BARO;
+    static const msgid_t ID = msgid_t::BARO;
 
-        BaroMessage &pressure(float pressure) {
-            data->pressure = pressure;
-            return *this;
-        }
+    /* Messages write data directly to buffer. */
+    BaroMessage(uint8_t *buf, size_t len);
 
-        BaroMessage &temperature(float temperature) {
-            data->temperature = temperature;
-            return *this;
-        }
+    void setPressure(float pressure)
+    {
+        _data->pressure = pressure;
+    }
 
-        Packet *encode() {
-            _packet.encode<BaroMessage>(this);
-            return &_packet;
-        }
-    };
+    void setTemperature(float temperature)
+    {
+        _data->temperature = temperature;
+    }
 
-    /* INS */
-    class InertialSensorMessage : public Message {
-    public:
+    virtual Packet::raw_t *encode()
+    {
+        Packet::encode<BaroMessage>(&_packet);
+        return &_packet;
+    }
 
-        // TODO: complete definition
-        typedef struct PACKED {
-            float gyrox;
-            float gyroy;
-            float gyroz;
-            uint64_t time;
-        } data_t;
+private:
+    data_t *_data;
+};
 
-        data_t *data = reinterpret_cast<data_t *>(_packet.data());
-        static const msgid_t ID = msgid_t::INS;
+class InertialSensorMessage : public Message {
+public:
+    // TODO: complete definition
+    typedef struct PACKED {
+        float gyrox;
+        float gyroy;
+        float gyroz;
+        float accelx;
+        float accely;
+        float accelz;
+    } data_t;
 
-        InertialSensorMessage &gyro(const Vector3f &vec) {
-            data->gyrox = vec.x;
-            data->gyroy = vec.y;
-            data->gyroz = vec.z;
-            return *this;
-        }
+    static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN);
 
-        Packet *encode() {
-            _packet.encode<InertialSensorMessage>(this);
-            return &_packet;
-        }
+    static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
+    static const msgid_t ID = msgid_t::INS;
 
-    };
+    InertialSensorMessage(uint8_t *buf, size_t len);
 
-}
+    void setGyro(const Vector3f &vec)
+    {
+        _data->gyrox = vec.x;
+        _data->gyroy = vec.y;
+        _data->gyroz = vec.z;
+    }
+
+    void setAccel(const Vector3f &vec)
+    {
+        _data->accelx = vec.x;
+        _data->accely = vec.y;
+        _data->accelz = vec.z;
+    }
+
+    virtual Packet::raw_t *encode()
+    {
+        Packet::encode<InertialSensorMessage>(&_packet);
+        return &_packet;
+    }
+
+private:
+    data_t *_data;
+};
+
+} // namespace SensorHead
