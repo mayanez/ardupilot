@@ -108,6 +108,8 @@ public:
     /// Return the current field as a Vector3f in milligauss
     const Vector3f &get_field(uint8_t i) const { return _state[i].field; }
     const Vector3f &get_field(void) const { return get_field(get_primary()); }
+    const Vector3f &get_raw_field(uint8_t i) const { return _state[i].raw_field; }
+    const Vector3f &get_raw_field(void) const { return get_field(get_primary()); }
 
     // compass calibrator interface
     void compass_cal_update();
@@ -378,6 +380,8 @@ private:
 
         // corrected magnetic field strength
         Vector3f    field;
+        // raw magnetic field strength
+        Vector3f    raw_field;
 
         // when we last got data
         uint32_t    last_update_ms;

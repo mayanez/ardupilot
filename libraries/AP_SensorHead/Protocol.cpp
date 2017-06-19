@@ -108,9 +108,11 @@ uint8_t *Packet::findMagic(uint8_t *buf, size_t len)
 /* Template Specializations */
 template void Packet::encode<BaroMessage>(raw_t *p);
 template void Packet::encode<InertialSensorMessage>(raw_t *p);
+template void Packet::encode<CompassMessage>(raw_t *p);
 
 template bool Packet::setup<BaroMessage>(raw_t *p, uint8_t *buf, size_t len);
 template bool Packet::setup<InertialSensorMessage>(raw_t *p, uint8_t *buf, size_t len);
+template bool Packet::setup<CompassMessage>(raw_t *p, uint8_t *buf, size_t len);
 
 /* Message Constructors */
 // TODO: Refactor this into base class constructor.
@@ -127,6 +129,16 @@ BaroMessage::BaroMessage(uint8_t *buf, size_t len)
 InertialSensorMessage::InertialSensorMessage(uint8_t *buf, size_t len)
 {
     bool init = Packet::setup<InertialSensorMessage>(&_packet, buf, len);
+    _data = reinterpret_cast<data_t *>(_packet.data);
+
+    if (!init) {
+        AP_HAL::panic("Failed to setup");
+    }
+}
+
+CompassMessage::CompassMessage(uint8_t *buf, size_t len)
+{
+    bool init = Packet::setup<CompassMessage>(&_packet, buf, len);
     _data = reinterpret_cast<data_t *>(_packet.data);
 
     if (!init) {

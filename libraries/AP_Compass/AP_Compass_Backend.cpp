@@ -34,7 +34,7 @@ void AP_Compass_Backend::publish_raw_field(const Vector3f &mag, uint32_t time_us
     // EKF and DCM would end up consuming compass data at the full
     // sensor rate. We want them to consume only the filtered fields
     state.last_update_ms = AP_HAL::millis();
-
+    state.raw_field = mag;
     _compass._calibrator[instance].new_sample(mag);
 }
 
