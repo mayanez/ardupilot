@@ -42,6 +42,15 @@ void AP_SensorHead::handlePacket(Packet::raw_t *packet)
         _baroHandler->handle(data);
         break;
     }
+    case msgid_t::COMPASS: {
+        hal.console->printf("Compass: %f\n", (double)AP_HAL::micros64());
+        if (!Message::verify<CompassMessage>(packet)) {
+            return;
+        }
+        CompassMessage::data_t *data = Message::decode<CompassMessage>(packet);
+        _compassHandler->handle(data);
+        break;
+    }
     default:
         _defaultHandler->handle(nullptr);
         break;
@@ -88,4 +97,12 @@ void AP_SensorHead::write<InertialSensorMessage>(uint8_t *buf, size_t len)
     msg.encode();
 
     // hal.util->perf_end(_perf_write);
+}
+
+template <>
+void AP_SensorHead::write<CompassMessage>(uint8_t *buf, size_t len)
+{
+    CompassMessage msg{buf, len};
+    msg.setField(_compass->get_raw_field());
+    msg.encode();
 }

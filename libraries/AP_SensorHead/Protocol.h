@@ -213,4 +213,37 @@ private:
     data_t *_data;
 };
 
+class CompassMessage : public Message {
+public:
+
+    // These are the raw fields in body frame.
+    typedef struct {
+        float magx;
+        float magy;
+        float magz;
+    } data_t;
+
+    static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN);
+
+    static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
+    static const msgid_t ID = msgid_t::COMPASS;
+
+    CompassMessage(uint8_t *buf, size_t len);
+
+    void setField(const Vector3f &field) {
+        _data->magx = field.x;
+        _data->magy = field.y;
+        _data->magz = field.z;
+    }
+
+    virtual Packet::raw_t *encode()
+    {
+        Packet::encode<CompassMessage>(&_packet);
+        return &_packet;
+    }
+
+private:
+    data_t *_data;
+};
+
 } // namespace SensorHead

@@ -19,6 +19,7 @@
 #include "AP_Compass_LIS3MDL.h"
 #include "AP_Compass_AK09916.h"
 #include "AP_Compass_QMC5883L.h"
+#include "AP_Compass_SensorHead.h"
 #if HAL_WITH_UAVCAN
 #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
 #include "AP_Compass_UAVCAN.h"
@@ -421,7 +422,7 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Increment: 1
     // @User: Advanced
     AP_GROUPINFO("OFFS_MAX", 31, Compass, _offset_max, AP_COMPASS_OFFSETS_MAX_DEFAULT),
-    
+
     AP_GROUPEND
 };
 
@@ -516,21 +517,6 @@ void Compass::_detect_backends(void)
         } \
     } while (0)
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    ADD_BACKEND(new AP_Compass_SITL(*this), nullptr, false);
-    return;
-#endif
-    
-#if HAL_WITH_UAVCAN
-    bool added;
-    do {
-        added = _add_backend(AP_Compass_UAVCAN::probe(*this), "UAVCAN", true);
-        if (_backend_count == COMPASS_MAX_BACKEND || _compass_count == COMPASS_MAX_INSTANCES) {
-            return;
-        }
-    } while (added);
-#endif
-
 #if HAL_COMPASS_DEFAULT == HAL_COMPASS_HIL
     ADD_BACKEND(AP_Compass_HIL::detect(*this), nullptr, false);
 #elif HAL_COMPASS_DEFAULT == HAL_COMPASS_PX4 || HAL_COMPASS_DEFAULT == HAL_COMPASS_VRBRAIN
@@ -555,7 +541,7 @@ void Compass::_detect_backends(void)
         ADD_BACKEND(AP_Compass_QMC5883L::probe(*this, hal.i2c_mgr->get_device(1, HAL_COMPASS_QMC5883L_I2C_ADDR),
                                  ROTATION_YAW_90), AP_Compass_QMC5883L::name, true);
 
-        
+
 #if !HAL_MINIMIZE_FEATURES
         // AK09916 on ICM20948
         ADD_BACKEND(AP_Compass_AK09916::probe_ICM20948(*this,
@@ -569,7 +555,7 @@ void Compass::_detect_backends(void)
                                                        hal.i2c_mgr->get_device(0, HAL_COMPASS_ICM20948_I2C_ADDR),
                                                        both_i2c_external, ROTATION_NONE),
                      AP_Compass_AK09916::name, true);
-        
+
 #if 0
         // lis3mdl - this is disabled for now due to an errata on pixhawk2 GPS unit, pending investigation
         ADD_BACKEND(AP_Compass_LIS3MDL::probe(*this, hal.i2c_mgr->get_device(1, HAL_COMPASS_LIS3MDL_I2C_ADDR),
@@ -635,7 +621,7 @@ void Compass::_detect_backends(void)
         ADD_BACKEND(AP_Compass_AK8963::probe_mpu9250(*this, 0, ROTATION_ROLL_180_YAW_90),
                      AP_Compass_AK8963::name, false);
         break;
-        
+
     case AP_BoardConfig::PX4_BOARD_PH2SLIM:
         ADD_BACKEND(AP_Compass_AK8963::probe_mpu9250(*this, 0, ROTATION_YAW_270),
                      AP_Compass_AK8963::name, false);
@@ -1092,4 +1078,3 @@ bool Compass::consistent() const
     }
     return true;
 }
-

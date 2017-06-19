@@ -5,6 +5,7 @@
 #include <AP_Common/AP_Common.h>
 #include <AP_Baro/AP_Baro.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
+#include <AP_Compass/AP_Compass.h>
 #include <AP_HAL/AP_HAL.h>
 
 using namespace SensorHead;
@@ -41,6 +42,11 @@ public:
         _ins = ins;
     }
 
+    void registerSensor(Compass *compass)
+    {
+        _compass = compass;
+    }
+
 
     /* Handler Registration */
     void registerHandler(AP_SensorHead_Handler<BaroMessage> *handler)
@@ -54,6 +60,10 @@ public:
         _insHandler = handler;
     }
 
+    void registerHandler(AP_SensorHead_Handler<CompassMessage> *handler)
+    {
+        _compassHandler = handler;
+    }
     void registerHandler(AP_SensorHead_Handler<UnknownMessage> *handler)
     {
         _defaultHandler = handler;
@@ -94,11 +104,13 @@ private:
 
     // TODO: Add more sensors.
     AP_Baro *_baro;
+    Compass *_compass;
     AP_InertialSensor *_ins;
 
     /* Message Handlers */
     AP_SensorHead_Handler<BaroMessage> *_baroHandler;
     AP_SensorHead_Handler<InertialSensorMessage> *_insHandler;
+    AP_SensorHead_Handler<CompassMessage> *_compassHandler;
     AP_SensorHead_Handler<UnknownMessage> *_defaultHandler;
 
     AP_HAL::Util::perf_counter_t _perf_read;
