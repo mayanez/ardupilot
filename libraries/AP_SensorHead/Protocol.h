@@ -2,6 +2,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
+#include <AP_GPS/AP_GPS.h>
 
 namespace SensorHead {
 
@@ -90,6 +91,7 @@ enum class msgid_t : uint8_t {
     RCOUT,
     BARO,
     COMPASS,
+    GPS,
 };
 // TODO: Define remaining message types.
 
@@ -241,6 +243,73 @@ public:
         Packet::encode<CompassMessage>(&_packet);
         return &_packet;
     }
+
+private:
+    data_t *_data;
+};
+
+class GPSMessage : public Message {
+public:
+
+    typedef struct PACKED {
+        AP_GPS::GPS_Status status;                     ///< driver fix status
+        uint32_t time_week_ms;              ///< GPS time (milliseconds from start of GPS week)
+        uint16_t time_week;                 ///< GPS week number
+        // NOTE: This can be serialized.
+        Location location;                  ///< last fix location
+        float ground_speed;                 ///< ground speed in m/sec
+        float ground_course;                ///< ground course in degrees
+        uint16_t hdop;                      ///< horizontal dilution of precision in cm
+        uint16_t vdop;                      ///< vertical dilution of precision in cm
+        uint8_t num_sats;                   ///< Number of visible satellites
+        float velocityx;                    ///< 3D velocity in m/s, in NED format
+        float velocityy;
+        float velocityz;
+        float speed_accuracy;               ///< 3D velocity accuracy estimate in m/s
+        float horizontal_accuracy;          ///< horizontal accuracy estimate in m
+        float vertical_accuracy;            ///< vertical accuracy estimate in m
+        bool have_vertical_velocity:1;      ///< does GPS give vertical velocity? Set to true only once available.
+        bool have_speed_accuracy:1;         ///< does GPS give speed accuracy? Set to true only once available.
+        bool have_horizontal_accuracy:1;    ///< does GPS give horizontal position accuracy? Set to true only once available.
+        bool have_vertical_accuracy:1;      ///< does GPS give vertical position accuracy? Set to true only once available.
+    } data_t;
+
+    static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN);
+
+    static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
+    static const msgid_t ID = msgid_t::GPS;
+
+    GPSMessage(uint8_t *buf, size_t len);
+
+    void setState(const AP_GPS::GPS_State &state) {
+        _data->status                   = state.status;
+        _data->time_week_ms             = state.time_week_ms;
+        _data->time_week                = state.time_week;
+        _data->location                 = state.location;
+        _data->ground_speed             = state.ground_speed;
+        _data->ground_course            = state.ground_course;
+        _data->hdop                     = state.hdop;
+        _data->vdop                     = state.vdop;
+        _data->num_sats                 = state.num_sats;
+        _data->velocityx                = state.velocity.x;
+        _data->velocityy                = state.velocity.y;
+        _data->velocityz                = state.velocity.z;
+        _data->speed_accuracy           = state.speed_accuracy;
+        _data->horizontal_accuracy      = state.horizontal_accuracy;
+        _data->vertical_accuracy        = state.vertical_accuracy;
+        _data->have_vertical_velocity   = state.have_vertical_velocity;
+        _data->have_speed_accuracy      = state.have_speed_accuracy;
+        _data->have_horizontal_accuracy = state.have_horizontal_accuracy;
+        _data->have_vertical_accuracy   = state.have_vertical_accuracy;
+    }
+
+    virtual Packet::raw_t *encode()
+    {
+        Packet::encode<GPSMessage>(&_packet);
+        return &_packet;
+    }
+
+
 
 private:
     data_t *_data;

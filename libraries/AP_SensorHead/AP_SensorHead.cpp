@@ -51,6 +51,15 @@ void AP_SensorHead::handlePacket(Packet::raw_t *packet)
         _compassHandler->handle(data);
         break;
     }
+    case msgid_t::GPS: {
+        //hal.console->printf("GPS: %f\n", (double)AP_HAL::micros64());
+        if (!Message::verify<GPSMessage>(packet)) {
+            return;
+        }
+        GPSMessage::data_t *data = Message::decode<GPSMessage>(packet);
+        _gpsHandler->handle(data);
+        break;
+    }
     default:
         _defaultHandler->handle(nullptr);
         break;
@@ -104,5 +113,12 @@ void AP_SensorHead::write<CompassMessage>(uint8_t *buf, size_t len)
 {
     CompassMessage msg{buf, len};
     msg.setField(_compass->get_raw_field());
+    msg.encode();
+}
+template <>
+void AP_SensorHead::write<GPSMessage>(uint8_t *buf, size_t len)
+{
+    GPSMessage msg{buf, len};
+    msg.setState(_gps->get_state());
     msg.encode();
 }

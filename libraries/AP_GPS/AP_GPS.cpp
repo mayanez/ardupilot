@@ -35,6 +35,7 @@
 #include "AP_GPS_SIRF.h"
 #include "AP_GPS_UBLOX.h"
 #include "AP_GPS_MAV.h"
+#include "AP_GPS_SensorHead.h"
 #include "GPS_Backend.h"
 
 #if HAL_WITH_UAVCAN
@@ -415,6 +416,15 @@ void AP_GPS::detect_instance(uint8_t instance)
         new_gps = new AP_GPS_MAV(*this, state[instance], nullptr);
         goto found_gps;
         break;
+
+#if HAL_SHEAD_ENABLED
+    // user has to explicitly set the SHEAD type, do not use AUTO
+    // do not try to detect the SHEAD type, assume it's there
+    case GPS_TYPE_SHEAD:
+        dstate->auto_detected_baud = false;
+        new_gps = new AP_GPS_SensorHead(*this, state[instance], nullptr);
+        goto found_gps;
+#endif
 
 #if HAL_WITH_UAVCAN
     // user has to explicitly set the UAVCAN type, do not use AUTO

@@ -85,7 +85,8 @@ public:
         GPS_TYPE_QURT  = 12,
         GPS_TYPE_ERB = 13,
         GPS_TYPE_MAV = 14,
-        GPS_TYPE_NOVA = 15
+        GPS_TYPE_NOVA = 15,
+        GPS_TYPE_SHEAD = 16,
     };
 
     /// GPS status codes
@@ -167,6 +168,13 @@ public:
     // the output. A blended solution is available as an additional instance
     uint8_t primary_sensor(void) const {
         return primary_instance;
+    }
+
+    GPS_State get_state(uint8_t instance) const {
+        return state[instance];
+    }
+    GPS_State get_state(void) const {
+        return get_state(primary_instance);
     }
 
     /// Query GPS status

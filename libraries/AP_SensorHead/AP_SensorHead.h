@@ -6,6 +6,7 @@
 #include <AP_Baro/AP_Baro.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
 #include <AP_Compass/AP_Compass.h>
+#include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
 
 using namespace SensorHead;
@@ -47,6 +48,11 @@ public:
         _compass = compass;
     }
 
+    void registerSensor(AP_GPS *gps)
+    {
+        _gps = gps;
+    }
+
 
     /* Handler Registration */
     void registerHandler(AP_SensorHead_Handler<BaroMessage> *handler)
@@ -65,8 +71,10 @@ public:
         _compassHandler = handler;
     }
     void registerHandler(AP_SensorHead_Handler<UnknownMessage> *handler)
+    void registerHandler(AP_SensorHead_Handler<GPSMessage> *handler)
     {
-        _defaultHandler = handler;
+        _gpsHandler = handler;
+    }
     }
 
     /* Singleton methods */
@@ -106,12 +114,15 @@ private:
     AP_Baro *_baro;
     Compass *_compass;
     AP_InertialSensor *_ins;
+    AP_GPS *_gps;
 
     /* Message Handlers */
     AP_SensorHead_Handler<BaroMessage> *_baroHandler;
     AP_SensorHead_Handler<InertialSensorMessage> *_insHandler;
     AP_SensorHead_Handler<CompassMessage> *_compassHandler;
     AP_SensorHead_Handler<UnknownMessage> *_defaultHandler;
+    AP_SensorHead_Handler<GPSMessage> *_gpsHandler;
+
 
     AP_HAL::Util::perf_counter_t _perf_read;
     AP_HAL::Util::perf_counter_t _perf_write;
