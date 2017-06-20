@@ -675,11 +675,6 @@ AP_InertialSensor::detect_backends(void)
         return;
     }
 
-#if HAL_SHEAD_ENABLED
-    // TODO: Is this correct?
-    _add_backend(AP_InertialSensor_SensorHead::detect(*this));
-#endif
-
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     _add_backend(AP_InertialSensor_SITL::detect(*this));
 #elif HAL_INS_DEFAULT == HAL_INS_HIL
@@ -808,6 +803,10 @@ AP_InertialSensor::detect_backends(void)
     } else {
         hal.console->printf("aero: onboard IMU not detected\n");
     }
+#elif HAL_INS_DEFAULT == HAL_INS_SHEAD
+    // NOTE: Current assumption is that Slave does not have any sensors.
+    _add_backend(AP_InertialSensor_SensorHead::detect(*this));
+    return;
 #else
     #error Unrecognised HAL_INS_TYPE setting
 #endif
@@ -1330,6 +1329,23 @@ void AP_InertialSensor::wait_for_sample(void)
     }
 
 check_sample:
+#if HAL_INS_DEFAULT == HAL_INS_SHEAD
+    // NOTE: Here we do not wait. Maybe should be like this for all cases.
+    bool gyro_available = false;
+    bool accel_available = false;
+    for (uint8_t i=0; i<_backend_count; i++) {
+        _backends[i]->accumulate();
+    }
+
+    for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
+        gyro_available |= _new_gyro_data[i];
+        accel_available |= _new_accel_data[i];
+    }
+
+    _have_sample = gyro_available && accel_available;
+    return;
+#endif // HAL_INS_SHEAD
+
     if (!_hil_mode) {
         // we also wait for at least one backend to have a sample of both
         // accel and gyro. This normally completes immediately.
