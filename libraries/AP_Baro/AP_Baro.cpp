@@ -166,8 +166,16 @@ void AP_Baro::calibrate(bool save)
         do {
             update();
             if (AP_HAL::millis() - tstart > 500) {
-                AP_HAL::panic("PANIC: AP_Baro::read unsuccessful "
+                #if HAL_BARO_DEFAULT == HAL_BARO_SHEAD
+                // TODO: Don't know how to best handle this. Basically we should
+                // wait here until we start receiving packets. Not sure if it
+                // makes sense to maybe move the receiving packets checks elsewhere.
+                hal.console->printf("PANIC: AP_Baro::read unsuccessful "
                         "for more than 500ms in AP_Baro::calibrate [2]\r\n");
+                #else
+                AP_HAL::panic("PANIC: AP_Baro::read unsuccessful "
+                              "for more than 500ms in AP_Baro::calibrate [2]\r\n");
+                #endif
             }
             hal.scheduler->delay(10);
         } while (!healthy());
@@ -390,10 +398,10 @@ void AP_Baro::init(void)
         return;
     }
 
-#if HAL_SHEAD_ENABLED
-    // TODO: Do we only want to register these backends for SLAVE mode?
-    // TODO: Where is the correct place for this?
+#if HAL_BARO_DEFAULT == HAL_BARO_SHEAD
+    // NOTE: Current assumption is that Slave does not have any sensors.
     ADD_BACKEND(new AP_Baro_SensorHead(*this));
+    return;
 #endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL

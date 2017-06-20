@@ -703,6 +703,9 @@ void Compass::_detect_backends(void)
 #elif HAL_COMPASS_DEFAULT == HAL_COMPASS_AERO
     ADD_BACKEND(AP_Compass_BMM150::probe(*this, hal.i2c_mgr->get_device(HAL_COMPASS_BMM150_I2C_BUS, HAL_COMPASS_BMM150_I2C_ADDR)),
                  AP_Compass_BMM150::name, false);
+#elif HAL_COMPASS_DEFAULT == HAL_COMPASS_SHEAD
+    ADD_BACKEND(new AP_Compass_SensorHead(*this), nullptr, false);
+    return;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX && CONFIG_HAL_BOARD_SUBTYPE != HAL_BOARD_SUBTYPE_LINUX_NONE
     ADD_BACKEND(AP_Compass_HMC5843::probe(*this, hal.i2c_mgr->get_device(HAL_COMPASS_HMC5843_I2C_BUS, HAL_COMPASS_HMC5843_I2C_ADDR)),
                  AP_Compass_HMC5843::name, false);
