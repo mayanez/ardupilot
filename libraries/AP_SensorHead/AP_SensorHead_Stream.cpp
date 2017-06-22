@@ -1,8 +1,22 @@
 #include "AP_SensorHead_Stream.h"
 
+bool AP_SensorHead_Stream::init()
+{
+    _shead = AP_SensorHead::get_instance();
+
+    return _shead
+        && _inputStream
+        && _outputStream;
+}
+
 void AP_SensorHead_Stream::read()
 {
-    int16_t byte = _readStream->read();
+
+    if (!_shead->isReady()) {
+        return;
+    }
+
+    int16_t byte = _inputStream->read();
     if (byte != -1) {
         uint8_t b = byte;
         recvBuffer.write(&b, 1);

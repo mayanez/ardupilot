@@ -10,19 +10,23 @@
  */
 class AP_SensorHead_Stream {
 public:
-    AP_SensorHead_Stream(AP_SensorHead *shead, AP_HAL::Stream *readStream, AP_HAL::Stream *writeStream) :
-        _shead(shead),
-        _readStream(readStream),
-        _writeStream(writeStream)
-    {}
 
+    void registerInputStream(AP_HAL::Stream *inputStream) {
+        _inputStream = inputStream;
+    }
+
+    void registerOutputStream(AP_HAL::Stream *outputStream) {
+        _outputStream = outputStream;
+    }
+
+    bool init();
     void read();
 
     template <class T>
     void write()
     {
         _shead->write<T>(&writeBuffer[0], sizeof(writeBuffer));
-        _writeStream->write(&writeBuffer[0], T::PACKET_LENGTH);
+        _outputStream->write(&writeBuffer[0], T::PACKET_LENGTH);
     }
 
 private:
@@ -32,6 +36,6 @@ private:
     uint8_t dataBuffer[Packet::MAX_PACKET_LEN];
     uint8_t writeBuffer[Packet::MAX_PACKET_LEN];
 
-    AP_HAL::Stream *_readStream;
-    AP_HAL::Stream *_writeStream;
+    AP_HAL::Stream *_inputStream;
+    AP_HAL::Stream *_outputStream;
 };
