@@ -61,7 +61,7 @@ void AP_SensorHead::handlePacket(Packet::raw_t *packet)
         break;
     }
     default:
-        _defaultHandler->handle(nullptr);
+        _defaultHandler.handle(nullptr);
         break;
     }
 }

@@ -36,7 +36,6 @@ private:
     uint8_t dataBuffer[Packet::MAX_PACKET_LEN];
     uint8_t writeBuffer[Packet::MAX_PACKET_LEN];
 
-
     AP_HAL::Stream *_inputStream;
     AP_HAL::Stream *_outputStream;
 };

@@ -70,15 +70,18 @@ public:
     {
         _compassHandler = handler;
     }
-    void registerHandler(AP_SensorHead_Handler<UnknownMessage> *handler)
+
     void registerHandler(AP_SensorHead_Handler<GPSMessage> *handler)
     {
         _gpsHandler = handler;
     }
+
+    bool isReady() {
+        return handlerReady() && sensorReady();
     }
 
     /* Singleton methods */
-    static AP_SensorHead *init();
+    static AP_SensorHead *init(); // TODO: Rename to init_instance()
     static AP_SensorHead *get_instance()
     {
         if (_initialized) {
@@ -110,6 +113,20 @@ private:
     static bool _initialized;
     static AP_SensorHead _instance;
 
+    bool handlerReady() {
+        return _baroHandler
+            && _insHandler
+            && _compassHandler
+            && _gpsHandler;
+    }
+
+    bool sensorReady() {
+        return _baro
+            && _compass
+            && _ins
+            && _gps;
+    }
+
     // TODO: Add more sensors.
     AP_Baro *_baro;
     Compass *_compass;
@@ -120,7 +137,7 @@ private:
     AP_SensorHead_Handler<BaroMessage> *_baroHandler;
     AP_SensorHead_Handler<InertialSensorMessage> *_insHandler;
     AP_SensorHead_Handler<CompassMessage> *_compassHandler;
-    AP_SensorHead_Handler<UnknownMessage> *_defaultHandler;
+    AP_SensorHead_Handler<UnknownMessage> _defaultHandler;
     AP_SensorHead_Handler<GPSMessage> *_gpsHandler;
 
 

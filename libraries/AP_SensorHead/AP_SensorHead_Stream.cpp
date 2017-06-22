@@ -1,5 +1,14 @@
 #include "AP_SensorHead_Stream.h"
 
+bool AP_SensorHead_Stream::init()
+{
+    _shead = AP_SensorHead::get_instance();
+
+    return _shead
+        && _inputStream
+        && _outputStream;
+}
+
 void AP_SensorHead_Stream::read()
 {
     int16_t byte = 0;
