@@ -4,6 +4,7 @@
 #include <AP_Math/AP_Math.h>
 #include <AP_GPS/AP_GPS.h>
 
+#if HAL_SHEAD_ENABLED
 namespace SensorHead {
 
 enum class msgid_t : uint8_t;
@@ -316,3 +317,4 @@ private:
 };
 
 } // namespace SensorHead
+#endif // HAL_SHEAD_ENABLED

@@ -3,6 +3,8 @@
 #include "AP_Baro_Backend.h"
 #include <AP_SensorHead/AP_SensorHead.h>
 
+#if HAL_SHEAD_ENABLED
+
 class AP_Baro_SensorHead;
 
 class BaroMessageHandler : public AP_SensorHead_Handler<BaroMessage> {
@@ -36,3 +38,4 @@ private:
     BaroMessageHandler _handler {this};
     AP_HAL::Semaphore *_sem_baro;
 };
+#endif // HAL_SHEAD_ENABLE

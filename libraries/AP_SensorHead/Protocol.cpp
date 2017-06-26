@@ -1,5 +1,7 @@
 #include "Protocol.h"
 
+#if HAL_SHEAD_ENABLED
+
 using namespace SensorHead;
 
 template <class T>
@@ -157,3 +159,4 @@ GPSMessage::GPSMessage(uint8_t *buf, size_t len)
         AP_HAL::panic("Failed to setup");
     }
 }
+#endif // HAL_SHEAD_ENABLED

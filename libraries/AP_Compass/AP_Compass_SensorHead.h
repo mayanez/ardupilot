@@ -5,6 +5,7 @@
 
 #include <AP_SensorHead/AP_SensorHead.h>
 
+#if HAL_SHEAD_ENABLED
 class AP_Compass_SensorHead;
 
 class CompassMessageHandler : public AP_SensorHead_Handler<CompassMessage> {
@@ -41,3 +42,4 @@ private:
     CompassMessageHandler _handler {this};
     AP_HAL::Semaphore *_sem_mag;
 };
+#endif // HAL_SHEAD_ENABLED

@@ -7,6 +7,7 @@
 #include "AP_GPS.h"
 #include "GPS_Backend.h"
 
+#if HAL_SHEAD_ENABLED
 class AP_GPS_SensorHead;
 
 class GPSMessageHandler : public AP_SensorHead_Handler<GPSMessage> {
@@ -43,3 +44,4 @@ private:
     GPSMessageHandler _handler {this};
     AP_HAL::Semaphore *_sem_gnss;
 };
+#endif // HAL_SHEAD_ENABLED

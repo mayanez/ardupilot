@@ -1,5 +1,6 @@
 #include "AP_SensorHead_Stream.h"
 
+#if HAL_SHEAD_ENABLED
 bool AP_SensorHead_Stream::init()
 {
     _shead = AP_SensorHead::get_instance();
@@ -11,11 +12,6 @@ bool AP_SensorHead_Stream::init()
 
 void AP_SensorHead_Stream::read()
 {
-
-    if (!_shead->isReady()) {
-        return;
-    }
-
     int16_t byte = _inputStream->read();
     if (byte != -1) {
         uint8_t b = byte;
@@ -34,3 +30,4 @@ void AP_SensorHead_Stream::read()
         }
     }
 }
+#endif // HAL_SHEAD_ENABLED

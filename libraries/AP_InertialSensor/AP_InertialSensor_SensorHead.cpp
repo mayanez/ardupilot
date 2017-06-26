@@ -5,6 +5,8 @@
 
 extern const AP_HAL::HAL& hal;
 
+#if HAL_SHEAD_ENABLED
+
 void InertialSensorMessageHandler::handle(InertialSensorMessage::data_t *data)
 {
     if (_backend->_sem_ins->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
@@ -55,3 +57,4 @@ bool AP_InertialSensor_SensorHead::update()
 
     return false;
 }
+#endif // HAL_SHEAD_ENABLED
