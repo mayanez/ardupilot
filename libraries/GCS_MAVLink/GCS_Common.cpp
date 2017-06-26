@@ -1102,7 +1102,9 @@ void GCS_MAVLINK::send_statustext_all(MAV_SEVERITY severity, const char *fmt, ..
     hal.util->vsnprintf((char *)text, sizeof(text)-1, fmt, arg_list);
     va_end(arg_list);
     text[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN] = 0;
-    gcs().send_statustext(severity, mavlink_active | chan_is_streaming, text);
+    if (&gcs()) {
+        gcs().send_statustext(severity, mavlink_active | chan_is_streaming, text);
+    }
 }
 
 /*
