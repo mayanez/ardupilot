@@ -4,6 +4,7 @@
 
 extern const AP_HAL::HAL& hal;
 
+#if HAL_SHEAD_ENABLED
 void CompassMessageHandler::handle(CompassMessage::data_t *data)
 {
     if(_backend->_sem_mag->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
@@ -56,3 +57,4 @@ void AP_Compass_SensorHead::read()
         _sem_mag->give();
     }
 }
+#endif // HAL_SHEAD_ENABLED

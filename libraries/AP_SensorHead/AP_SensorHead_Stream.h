@@ -5,6 +5,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/utility/RingBuffer.h>
 
+#if HAL_SHEAD_ENABLED
 /*
  * Auxiliary class for using AP_SensorHead with Streams (eg. UART).
  */
@@ -39,3 +40,4 @@ private:
     AP_HAL::Stream *_inputStream;
     AP_HAL::Stream *_outputStream;
 };
+#endif // HAL_SHEAD_ENABLED

@@ -5,6 +5,7 @@
 #include "AP_InertialSensor.h"
 #include "AP_InertialSensor_Backend.h"
 
+#if HAL_SHEAD_ENABLED
 class AP_InertialSensor_SensorHead;
 
 class InertialSensorMessageHandler : public AP_SensorHead_Handler<InertialSensorMessage> {
@@ -45,3 +46,4 @@ private:
     InertialSensorMessageHandler _handler {this};
     AP_HAL::Semaphore *_sem_ins;
 };
+#endif // HAL_SHEAD_ENABLED

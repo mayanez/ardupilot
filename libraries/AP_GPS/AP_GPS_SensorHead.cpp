@@ -2,6 +2,8 @@
 
 extern const AP_HAL::HAL& hal;
 
+#if HAL_SHEAD_ENABLED
+
 void GPSMessageHandler::handle(GPSMessage::data_t *data)
 {
     if (_backend->_sem_gnss->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
@@ -54,3 +56,4 @@ bool AP_GPS_SensorHead::read(void)
     }
     return false;
 }
+#endif // HAL_SHEAD_ENABLED

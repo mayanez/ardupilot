@@ -5,6 +5,8 @@
 
 extern const AP_HAL::HAL& hal;
 
+#if HAL_SHEAD_ENABLED
+
 void BaroMessageHandler::handle(BaroMessage::data_t *data)
 {
     if (_backend->_sem_baro->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
@@ -33,3 +35,4 @@ void AP_Baro_SensorHead::update()
         _sem_baro->give();
     }
 }
+#endif // HAL_SHEAD_ENABLED

@@ -9,6 +9,7 @@
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
 
+#if HAL_SHEAD_ENABLED
 using namespace SensorHead;
 
 /*
@@ -27,11 +28,7 @@ public:
  */
 class AP_SensorHead {
 public:
-    // TODO: What is the right number here?
-    /* Receive Thread Rate */
-    static const uint16_t UPDATE_RATE_HZ = 400;
-
-    AP_SensorHead();
+    static const uint16_t UPDATE_RATE_HZ = 1000;
 
     /* Sensor Registration */
     void registerSensor(AP_Baro *baro)
@@ -76,12 +73,8 @@ public:
         _gpsHandler = handler;
     }
 
-    bool isReady() {
-        return handlerReady() && sensorReady();
-    }
-
     /* Singleton methods */
-    static AP_SensorHead *init(); // TODO: Rename to init_instance()
+    static AP_SensorHead *init_instance();
     static AP_SensorHead *get_instance()
     {
         if (_initialized) {
@@ -109,23 +102,11 @@ public:
     template <class T>
     void  write(uint8_t *buf, size_t len);
 
+    bool init();
+
 private:
     static bool _initialized;
     static AP_SensorHead _instance;
-
-    bool handlerReady() {
-        return _baroHandler
-            && _insHandler
-            && _compassHandler
-            && _gpsHandler;
-    }
-
-    bool sensorReady() {
-        return _baro
-            && _compass
-            && _ins
-            && _gps;
-    }
 
     // TODO: Add more sensors.
     AP_Baro *_baro;
@@ -134,13 +115,20 @@ private:
     AP_GPS *_gps;
 
     /* Message Handlers */
+
+    class UnknownMessageHandler : public AP_SensorHead_Handler<UnknownMessage> {
+    public:
+        virtual void handle(UnknownMessage::data_t *data) {}
+    };
+
     AP_SensorHead_Handler<BaroMessage> *_baroHandler;
     AP_SensorHead_Handler<InertialSensorMessage> *_insHandler;
     AP_SensorHead_Handler<CompassMessage> *_compassHandler;
-    AP_SensorHead_Handler<UnknownMessage> _defaultHandler;
     AP_SensorHead_Handler<GPSMessage> *_gpsHandler;
+    UnknownMessageHandler _defaultHandler;
 
 
     AP_HAL::Util::perf_counter_t _perf_read;
     AP_HAL::Util::perf_counter_t _perf_write;
 };
+#endif // HAL_SHEAD_ENABLED
