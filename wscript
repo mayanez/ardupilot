@@ -104,6 +104,11 @@ revisions.
         default=False,
         help='Force a static build')
 
+    g.add_option('--shead',
+        action='store_true',
+        default=False,
+        help='Enable SHEAD')
+
 def _collect_autoconfig_files(cfg):
     for m in sys.modules.values():
         paths = []
@@ -135,6 +140,7 @@ def configure(cfg):
 
     cfg.env.BOARD = cfg.options.board
     cfg.env.DEBUG = cfg.options.debug
+    cfg.env.SHEAD = cfg.options.shead
 
     # Allow to differentiate our build from the make build
     cfg.define('WAF_BUILD', 1)

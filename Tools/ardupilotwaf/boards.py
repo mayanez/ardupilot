@@ -215,8 +215,12 @@ class sitl(Board):
         env.DEFINES.update(
             CONFIG_HAL_BOARD = 'HAL_BOARD_SITL',
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_NONE',
-            HAL_SHEAD_ENABLED = 'SHEAD_ENABLE',
         )
+
+        if cfg.env.SHEAD:
+            env.DEFINES.update(
+                HAL_SHEAD_ENABLED = 'SHEAD_ENABLE'
+            )
 
         if not cfg.env.DEBUG:
             env.CXXFLAGS += [
@@ -275,6 +279,7 @@ class sensorhead(linux):
         super(sensorhead, self).configure_env(cfg, env)
 
         env.DEFINES.update(
+            HAL_SHEAD_ENABLED = 'SHEAD_ENABLE',
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE',
         )
 
