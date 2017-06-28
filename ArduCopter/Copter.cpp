@@ -104,6 +104,9 @@ Copter::Copter(void) :
     in_mavlink_delay(false),
     gcs_out_of_time(false),
     param_loader(var_info)
+#if HAL_SHEAD_ENABLED
+    ,shead(AP_SensorHead::init_instance())
+#endif
 {
     memset(&current_loc, 0, sizeof(current_loc));
 
