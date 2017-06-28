@@ -77,16 +77,19 @@ void SITL_State::_sitl_setup(const char *home_str)
 
     // find the barometer object if it exists
     _sitl = (SITL::SITL *)AP_Param::find_object("SIM_");
-    _barometer = (AP_Baro *)AP_Param::find_object("GND_");
+    _barometer = (AP_Baro *)AP_Param::find_object("SG_");
     _ins = (AP_InertialSensor *)AP_Param::find_object("INS_");
     _compass = (Compass *)AP_Param::find_object("COMPASS_");
 #if AP_TERRAIN_AVAILABLE
     _terrain = (AP_Terrain *)AP_Param::find_object("TERRAIN_");
 #endif
 
+
     if (_sitl != nullptr) {
         // setup some initial values
 #ifndef HIL_MODE
+        _shead_init();
+        _shead_update();
         _update_airspeed(0);
         _update_compass();
         _update_gps(0, 0, 0, 0, 0, 0, false);
@@ -169,6 +172,7 @@ void SITL_State::_fdm_input_step(void)
         _update_airspeed(_sitl->state.airspeed);
         _update_compass();
         _update_rangefinder(_sitl->state.range);
+        _shead_update();
 
         if (_sitl->adsb_plane_count >= 0 &&
             adsb == nullptr) {

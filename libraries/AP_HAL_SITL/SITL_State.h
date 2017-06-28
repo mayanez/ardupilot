@@ -23,6 +23,8 @@
 #include <SITL/SIM_Gimbal.h>
 #include <SITL/SIM_ADSB.h>
 #include <AP_HAL/utility/Socket.h>
+#include <AP_SensorHead/AP_SensorHead.h>
+#include <AP_SensorHead/AP_SensorHead_Stream.h>
 
 class HAL_SITL;
 
@@ -41,6 +43,7 @@ public:
 
     int gps_pipe(void);
     int gps2_pipe(void);
+    int shead_pipe(void);
     ssize_t gps_read(int fd, void *buf, size_t count);
     uint16_t pwm_output[SITL_NUM_CHANNELS];
     uint16_t pwm_input[SITL_RC_INPUT_CHANNELS];
@@ -70,7 +73,11 @@ public:
         "tcp:2",
         "tcp:3",
         "GPS2",
-        "tcp:5",
+#if HAL_SHEAD_ENABLED
+        "SHEAD",
+#else
+        "tcp:5"
+#endif
     };
     
 private:
@@ -120,6 +127,9 @@ private:
     uint32_t CRC32Value(uint32_t icrc);
     uint32_t CalculateBlockCRC32(uint32_t length, uint8_t *buffer, uint32_t crc);
 
+    void _shead_init(void);
+    void _shead_write(const uint8_t *p, uint16_t size, uint8_t instance);
+    void _shead_update(void);
     void _update_gps(double latitude, double longitude, float altitude,
                      double speedN, double speedE, double speedD, bool have_lock);
     void _update_airspeed(float airspeed);
@@ -151,6 +161,10 @@ private:
     Compass *_compass;
 #if AP_TERRAIN_AVAILABLE
     AP_Terrain *_terrain;
+#endif
+
+#if HAL_SHEAD_ENABLED
+    AP_SensorHead *_shead;
 #endif
 
     SocketAPM _sitl_rc_in{true};

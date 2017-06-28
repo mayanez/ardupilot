@@ -30,11 +30,12 @@ public:
 
     // initialise the barometer object, loading backend drivers
     void init(void);
-
+    void sitl_init(void);
     // update the barometer object, asking backends to push data to
     // the frontend
     void update(void);
 
+    bool _add_backend(AP_Baro_Backend *backend);
     // healthy - returns true if sensor and derived altitude are good
     bool healthy(void) const { return healthy(_primary); }
     bool healthy(uint8_t instance) const { return sensors[instance].healthy && sensors[instance].alt_ok && sensors[instance].calibrated; }
@@ -196,5 +197,4 @@ private:
     // when did we last notify the GCS of new pressure reference?
     uint32_t                            _last_notify_ms;
 
-    bool _add_backend(AP_Baro_Backend *backend);
 };

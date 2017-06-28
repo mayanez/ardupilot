@@ -59,6 +59,9 @@ void UARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
         /* 2nd gps */
         _connected = true;
         _fd = _sitlState->gps2_pipe();
+    } else if (strcmp(path, "SHEAD") == 0) {
+        _connected = true;
+        _fd = _sitlState->shead_pipe();
     } else {
         /* parse type:args:flags string for path. 
            For example:
