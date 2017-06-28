@@ -167,7 +167,7 @@ void AP_Baro::calibrate(bool save)
         do {
             update();
             if (AP_HAL::millis() - tstart > 500) {
-                #if HAL_BARO_DEFAULT == HAL_BARO_SHEAD
+                #if HAL_BARO_DEFAULT == HAL_BARO_SHEAD || HAL_SHEAD_ENABLED
                 // TODO: Don't know how to best handle this. Basically we should
                 // wait here until we start receiving packets. Not sure if it
                 // makes sense to maybe move the receiving packets checks elsewhere.
@@ -382,6 +382,14 @@ bool AP_Baro::_add_backend(AP_Baro_Backend *backend)
        } \
     } while (0)
 
+void AP_Baro::sitl_init() {
+    // ensure that there isn't a previous ground temperature saved
+    if (!is_zero(_user_ground_temperature)) {
+        _user_ground_temperature.set_and_save(0.0f);
+        _user_ground_temperature.notify();
+    }
+}
+
 /*
   initialise the barometer object, loading backend drivers
  */
@@ -399,17 +407,21 @@ void AP_Baro::init(void)
         return;
     }
 
-#if HAL_BARO_DEFAULT == HAL_BARO_SHEAD
-    // NOTE: Current assumption is that Slave does not have any sensors.
-    ADD_BACKEND(new AP_Baro_SensorHead(*this));
-    return;
+#if HAL_SHEAD_ENABLED
+    #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+        ADD_BACKEND(new AP_Baro_SensorHead(*this));
+        return;
+    #elif HAL_BARO_DEFAULT == HAL_BARO_SHEAD
+        ADD_BACKEND(new AP_Baro_SensorHead(*this));
+        return;
+    #endif
+#else
+    #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+        ADD_BACKEND(new AP_Baro_SITL(*this));
+        return;
+    #endif
 #endif
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    ADD_BACKEND(new AP_Baro_SITL(*this));
-    return;
-#endif
-    
 #if HAL_WITH_UAVCAN
     bool added;
     do {
@@ -630,4 +642,3 @@ void AP_Baro::set_pressure_correction(uint8_t instance, float p_correction)
         sensors[instance].p_correction = p_correction;
     }
 }
-
