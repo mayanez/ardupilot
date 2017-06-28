@@ -128,6 +128,21 @@ void Copter::init_ardupilot()
     
     BoardConfig.init();
 
+#if HAL_SHEAD_ENABLED
+    shead->registerSensor(&barometer);
+    shead->registerSensor(&ins);
+    shead->registerSensor(&compass);
+    shead->registerSensor(&gps);
+
+    auto shead_uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_SHEAD, 0);
+    shead_stream.registerInputStream(shead_uart);
+    shead_stream.registerOutputStream(shead_uart);
+    shead_stream.init();
+
+    // Register callback to receive SensorHead Messages.
+    hal.scheduler->register_timer_process(FUNCTOR_BIND(&shead_stream, &AP_SensorHead_Stream::read, void));
+#endif
+
     // init cargo gripper
 #if GRIPPER_ENABLED == ENABLED
     g2.gripper.init();

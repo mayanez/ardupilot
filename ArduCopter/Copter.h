@@ -92,6 +92,8 @@
 #include <AP_Button/AP_Button.h>
 #include <AP_Arming/AP_Arming.h>
 #include <AP_VisualOdom/AP_VisualOdom.h>
+#include <AP_SensorHead/AP_SensorHead.h>
+#include <AP_SensorHead/AP_SensorHead_Stream.h>
 
 // Configuration
 #include "defines.h"
@@ -219,6 +221,8 @@ private:
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     SITL::SITL sitl;
+
+    AP_Baro baro_sitl;
 #endif
 
     // Mission library
@@ -636,6 +640,11 @@ private:
     // set when we are upgrading parameters from 3.4
     bool upgrading_frame_params;
     
+#if HAL_SHEAD_ENABLED
+    AP_SensorHead *shead;
+    AP_SensorHead_Stream shead_stream;
+#endif
+
     static const AP_Scheduler::Task scheduler_tasks[];
     static const AP_Param::Info var_info[];
     static const struct LogStructure log_structure[];

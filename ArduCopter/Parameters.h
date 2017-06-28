@@ -367,6 +367,10 @@ public:
 
         // 254,255: reserved
 
+        k_param_baro_sitl = 300,
+        k_param_compass_sitl,
+        k_param_ins_sitl,
+
         // the k_param_* space is 9-bits in size
         // 511: reserved
     };

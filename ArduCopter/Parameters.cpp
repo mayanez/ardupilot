@@ -746,6 +746,7 @@ const AP_Param::Info Copter::var_info[] = {
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     GOBJECT(sitl, "SIM_", SITL::SITL),
+    GOBJECT(baro_sitl, "SG_", AP_Baro),
 #endif
 
     // @Group: GND_
