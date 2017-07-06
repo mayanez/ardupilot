@@ -292,6 +292,7 @@ public:
         return (uint16_t)_offset_max.get();
     }
 
+    bool _add_backend(AP_Compass_Backend *backend, const char *name, bool external);
 private:
     /// Register a new compas driver, allocating an instance number
     ///
@@ -299,7 +300,6 @@ private:
     uint8_t register_compass(void);
 
     // load backend drivers
-    bool _add_backend(AP_Compass_Backend *backend, const char *name, bool external);
     void _detect_backends(void);
 
     // compass cal

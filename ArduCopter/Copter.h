@@ -224,6 +224,7 @@ private:
     SITL::SITL sitl;
 
     AP_Baro baro_sitl;
+    Compass compass_sitl;
 #endif
 
     // Mission library

@@ -65,6 +65,9 @@ void SITL_State::_shead_init()
     _barometer->_add_backend(new AP_Baro_SITL(*_barometer));
     _barometer->calibrate();
 
+    _compass->_add_backend(new AP_Compass_SITL(*_compass), nullptr, false);
+    _compass->read();
+
     fprintf(stdout, "SHEAD SITL INIT\n");
 }
 
@@ -87,11 +90,18 @@ void SITL_State::_shead_update()
     shead_state.last_update = AP_HAL::micros();
 
     _barometer->update();
+    _compass->read();
 
     if (shead_state.baro_last_update != _barometer->get_last_update()) {
         _shead->write<BaroMessage>(&shead_state.writeBuffer[0], sizeof(shead_state.writeBuffer));
         _shead_write(&shead_state.writeBuffer[0], BaroMessage::PACKET_LENGTH, 0);
         shead_state.baro_last_update = _barometer->get_last_update();
+    }
+
+    if (shead_state.compass_last_update != _compass->last_update_usec()) {
+        _shead->write<CompassMessage>(&shead_state.writeBuffer[0], sizeof(shead_state.writeBuffer));
+        _shead_write(&shead_state.writeBuffer[0], CompassMessage::PACKET_LENGTH, 0);
+        shead_state.compass_last_update = _compass->last_update_usec();
     }
 
 }
