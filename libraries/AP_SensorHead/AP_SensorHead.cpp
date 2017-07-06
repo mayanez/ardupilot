@@ -16,6 +16,7 @@ AP_SensorHead *AP_SensorHead::init_instance()
 
 bool AP_SensorHead::init()
 {
+//TODO: remove ifdefs when AP_Perf is merged
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     _perf_read = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "shead_read");
     _perf_write = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "shead_write");
@@ -23,58 +24,38 @@ bool AP_SensorHead::init()
     return true;
 }
 
-void AP_SensorHead::handlePacket(Packet::raw_t *packet)
+bool AP_SensorHead::handlePacket(Packet::raw_t *packet)
 {
 
     // TODO: Order according to frequency of appearance.
     switch (Packet::id(packet)) {
     case msgid_t::INS: {
-        if (!Message::verify<InertialSensorMessage>(packet)) {
-            return;
-        }
-        InertialSensorMessage::data_t *data =
-            Message::decode<InertialSensorMessage>(packet);
-        if (!_insHandler) {
-            return;
-        }
-        _insHandler->handle(data);
+        _handlePacketHelper<InertialSensorMessage,
+                            AP_SensorHead_Handler<InertialSensorMessage> >(packet, _insHandler);
+        return true;
         break;
     }
     case msgid_t::BARO: {
-        if (!Message::verify<BaroMessage>(packet)) {
-            return;
-        }
-        BaroMessage::data_t *data = Message::decode<BaroMessage>(packet);
-        if (!_baroHandler) {
-            return;
-        }
-        _baroHandler->handle(data);
+        _handlePacketHelper<BaroMessage,
+                            AP_SensorHead_Handler<BaroMessage> >(packet, _baroHandler);
+        return true;
         break;
     }
     case msgid_t::COMPASS: {
-        if (!Message::verify<CompassMessage>(packet)) {
-            return;
-        }
-        CompassMessage::data_t *data = Message::decode<CompassMessage>(packet);
-        if (!_compassHandler) {
-            return;
-        }
-        _compassHandler->handle(data);
+        _handlePacketHelper<CompassMessage,
+                            AP_SensorHead_Handler<CompassMessage> >(packet, _compassHandler);
+        return true;
         break;
     }
     case msgid_t::GPS: {
-        if (!Message::verify<GPSMessage>(packet)) {
-            return;
-        }
-        GPSMessage::data_t *data = Message::decode<GPSMessage>(packet);
-        if (!_gpsHandler) {
-            return;
-        }
-        _gpsHandler->handle(data);
+        _handlePacketHelper<GPSMessage,
+                            AP_SensorHead_Handler<GPSMessage> >(packet, _gpsHandler);
+        return true;
         break;
     }
     default:
         _defaultHandler.handle(nullptr);
+        return false;
         break;
     }
 }
@@ -86,16 +67,18 @@ bool AP_SensorHead::read(uint8_t *buf, size_t len)
 #endif
 
     Packet::raw_t p;
+    bool handled = false;
     bool decoded = Packet::decode(&p, buf, len);
+
     if (decoded) {
-        handlePacket(&p);
+        handled = handlePacket(&p);
     }
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_end(_perf_read);
 #endif
 
-    return decoded;
+    return handled;
 }
 
 template <>

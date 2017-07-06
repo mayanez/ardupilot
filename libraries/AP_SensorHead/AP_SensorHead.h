@@ -87,7 +87,7 @@ public:
      * Given a valid packet, determine its Message type & call appropriate
      * handler.
      */
-    void handlePacket(Packet::raw_t *packet);
+    bool handlePacket(Packet::raw_t *packet);
 
     /*
      * Given a buffer decode packet & call handler.
@@ -127,8 +127,22 @@ private:
     AP_SensorHead_Handler<GPSMessage> *_gpsHandler;
     UnknownMessageHandler _defaultHandler;
 
-
+    /* Utils */
     AP_HAL::Util::perf_counter_t _perf_read;
     AP_HAL::Util::perf_counter_t _perf_write;
+
+    /* Helper Methods */
+    template <class MessageType, class MessageHandler>
+    void _handlePacketHelper(Packet::raw_t *packet, MessageHandler *handler)
+    {
+        if (!Message::verify<MessageType>(packet)) {
+            return;
+        }
+        auto *data = Message::decode<MessageType>(packet);
+        if (!handler) {
+            return;
+        }
+        handler->handle(data);
+    }
 };
 #endif // HAL_SHEAD_ENABLED
