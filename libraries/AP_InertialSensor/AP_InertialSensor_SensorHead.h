@@ -16,8 +16,12 @@ public:
     {}
 
     virtual void handle(InertialSensorMessage::data_t *data);
+    virtual bool isValid(InertialSensorMessage::data_t *data);
+
 private:
     AP_InertialSensor_SensorHead *_backend;
+    uint32_t _count;
+    uint32_t _error;
 };
 
 

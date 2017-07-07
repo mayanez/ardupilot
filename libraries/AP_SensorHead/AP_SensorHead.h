@@ -19,6 +19,7 @@ template <class T>
 class AP_SensorHead_Handler {
 public:
     virtual void handle(typename T::data_t *data) = 0;
+    virtual bool isValid(typename T::data_t *data) = 0;
 };
 
 /*
@@ -119,6 +120,7 @@ private:
     class UnknownMessageHandler : public AP_SensorHead_Handler<UnknownMessage> {
     public:
         virtual void handle(UnknownMessage::data_t *data) {}
+        virtual bool isValid(UnknownMessage::data_t *data) { return true; }
     };
 
     AP_SensorHead_Handler<BaroMessage> *_baroHandler;

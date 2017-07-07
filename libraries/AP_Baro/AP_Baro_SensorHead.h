@@ -15,8 +15,11 @@ public:
     {}
 
     virtual void handle(BaroMessage::data_t *data);
+    virtual bool isValid(BaroMessage::data_t *data);
 private:
     AP_Baro_SensorHead *_backend;
+    uint32_t _count;
+    uint32_t _error;
 };
 
 class AP_Baro_SensorHead : public AP_Baro_Backend {

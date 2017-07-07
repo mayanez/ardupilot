@@ -16,9 +16,12 @@ public:
     {}
 
     virtual void handle(CompassMessage::data_t *data);
+    virtual bool isValid(CompassMessage::data_t *data);
 
 private:
     AP_Compass_SensorHead *_backend;
+    uint32_t _count;
+    uint32_t _error;
 };
 
 class AP_Compass_SensorHead : public AP_Compass_Backend {

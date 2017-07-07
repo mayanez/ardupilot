@@ -18,8 +18,11 @@ public:
     {}
 
     virtual void handle(GPSMessage::data_t *data);
+    virtual bool isValid(GPSMessage::data_t *data);
 private:
     AP_GPS_SensorHead *_backend;
+    uint32_t _count;
+    uint32_t _error;
 };
 
 

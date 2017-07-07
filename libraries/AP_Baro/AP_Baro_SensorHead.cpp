@@ -7,12 +7,26 @@ extern const AP_HAL::HAL& hal;
 
 #if HAL_SHEAD_ENABLED
 
+bool BaroMessageHandler::isValid(BaroMessage::data_t *data)
+{
+    return !std::isnan(data->pressure) && !std::isnan(data->temperature);
+}
+
 void BaroMessageHandler::handle(BaroMessage::data_t *data)
 {
     if (_backend->_sem_baro->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
-        _backend->_pressure = data->pressure;
-        _backend->_temperature = data->temperature;
-        _backend->_last_timestamp = AP_HAL::micros64();
+        if (isValid(data)) {
+            _backend->_pressure = data->pressure;
+            _backend->_temperature = data->temperature;
+            _backend->_last_timestamp = AP_HAL::micros64();
+            _count++;
+        } else {
+            // A packet is successfully decoded, however its data is not valid.
+            // This most likely due to CRC collision.
+            // TODO: Appropriately log this error.
+            hal.console->printf("ERROR:Baro data invalid!\n");
+            _error++;
+        }
         _backend->_sem_baro->give();
     }
 }

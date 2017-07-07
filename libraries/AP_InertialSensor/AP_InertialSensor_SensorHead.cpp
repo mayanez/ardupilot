@@ -7,18 +7,33 @@ extern const AP_HAL::HAL& hal;
 
 #if HAL_SHEAD_ENABLED
 
+bool InertialSensorMessageHandler::isValid(InertialSensorMessage::data_t *data)
+{
+    return !std::isnan(data->gyrox) && !std::isnan(data->gyroy) && !std::isnan(data->gyroz)
+        && !std::isinf(data->gyrox) && !std::isinf(data->gyroy) && !std::isinf(data->gyroz)
+        && !std::isnan(data->accelx) && !std::isnan(data->accely) && !std::isnan(data->accelz)
+        && !std::isinf(data->accelx) && !std::isinf(data->accely) && !std::isinf(data->accelz);
+}
+
 void InertialSensorMessageHandler::handle(InertialSensorMessage::data_t *data)
 {
     if (_backend->_sem_ins->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
-        _backend->_gyro.x = data->gyrox;
-        _backend->_gyro.y = data->gyroy;
-        _backend->_gyro.z = data->gyroz;
-        _backend->_accel.x = data->accelx;
-        _backend->_accel.y = data->accely;
-        _backend->_accel.z = data->accelz;
-        _backend->_last_timestamp = AP_HAL::micros64();
-        _backend->_notify_new_accel_raw_sample(_backend->_accel_instance, _backend->_accel, AP_HAL::micros64());
-        _backend->_notify_new_gyro_raw_sample(_backend->_gyro_instance, _backend->_gyro, AP_HAL::micros64());
+        if (isValid(data)) {
+            _backend->_gyro.x = data->gyrox;
+            _backend->_gyro.y = data->gyroy;
+            _backend->_gyro.z = data->gyroz;
+            _backend->_accel.x = data->accelx;
+            _backend->_accel.y = data->accely;
+            _backend->_accel.z = data->accelz;
+            _backend->_last_timestamp = AP_HAL::micros64();
+            _backend->_notify_new_accel_raw_sample(_backend->_accel_instance, _backend->_accel, AP_HAL::micros64());
+            _backend->_notify_new_gyro_raw_sample(_backend->_gyro_instance, _backend->_gyro, AP_HAL::micros64());
+            _count++;
+        } else {
+            hal.console->printf("ERROR:INS data invalid!\n");
+            _error++;
+        }
+
         _backend->_sem_ins->give();
     }
 }
