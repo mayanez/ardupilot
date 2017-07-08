@@ -755,6 +755,7 @@ const AP_Param::Info Copter::var_info[] = {
     GOBJECT(baro_sitl, "SG_", AP_Baro),
     GOBJECT(compass_sitl, "SC_", Compass),
     GOBJECT(ins_sitl, "SI_", AP_InertialSensor),
+    GOBJECT(gps_sitl, "SP_", AP_GPS),
 #endif
 
     // @Group: GND_

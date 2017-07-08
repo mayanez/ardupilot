@@ -166,6 +166,8 @@ private:
 
 #if HAL_SHEAD_ENABLED
     AP_SensorHead *_shead;
+    AP_GPS *_gps;
+    AP_SerialManager *_serial_manager;
 #endif
 
     SocketAPM _sitl_rc_in{true};

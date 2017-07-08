@@ -81,6 +81,8 @@ void SITL_State::_sitl_setup(const char *home_str)
     _barometer = (AP_Baro *)AP_Param::find_object("SG_");
     _compass = (Compass *)AP_Param::find_object("SC_");
     _ins = (AP_InertialSensor *)AP_Param::find_object("SI_");
+    _serial_manager = (AP_SerialManager *)AP_Param::find_object("SERIAL");
+    _gps = (AP_GPS *)AP_Param::find_object("SP_");
 #else
     _barometer = (AP_Baro *)AP_Param::find_object("GND_");
     _compass = (Compass *)AP_Param::find_object("COMPASS_");

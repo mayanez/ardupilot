@@ -224,7 +224,11 @@ void Copter::init_ardupilot()
 
     // Do GPS init
     gps.set_log_gps_bit(MASK_LOG_GPS);
+#if HAL_SHEAD_ENABLED
+    gps.init(serial_manager, AP_SerialManager::SerialProtocol_SHEAD);
+#else
     gps.init(serial_manager);
+#endif
 
     init_compass();
 

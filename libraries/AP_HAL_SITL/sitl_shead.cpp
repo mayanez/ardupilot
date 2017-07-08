@@ -15,6 +15,7 @@
 #include <AP_Compass/AP_Compass_SITL.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
 #include <AP_InertialSensor/AP_InertialSensor_SITL.h>
+#include <AP_GPS/AP_GPS.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <time.h>
@@ -35,6 +36,7 @@ static struct shead_state {
     uint32_t baro_last_update;
     uint32_t compass_last_update;
     uint32_t ins_last_update;
+    uint32_t gps_last_update;
 
     uint8_t writeBuffer[SensorHead::Packet::MAX_PACKET_LEN];
 } shead_state;
@@ -60,6 +62,7 @@ void SITL_State::_shead_init()
     _shead->registerSensor(_barometer);
     _shead->registerSensor(_compass);
     _shead->registerSensor(_ins);
+    _shead->registerSensor(_gps);
 
     _barometer->sitl_init();
     _barometer->_add_backend(new AP_Baro_SITL(*_barometer));
@@ -70,6 +73,11 @@ void SITL_State::_shead_init()
 
     _ins->_add_backend(AP_InertialSensor_SITL::detect(*_ins));
     _ins->init(AP_SensorHead::UPDATE_RATE_HZ, false);
+
+    _serial_manager->init(); // NOTE: Initialize serial manager here as it
+                             // happens before init_ardupilot. No harm in
+                             // initializing twice from what I can tell.
+    _gps->init(*_serial_manager, AP_SerialManager::SerialProtocol_GPS);
 
     fprintf(stdout, "SHEAD SITL INIT\n");
 }
@@ -95,6 +103,7 @@ void SITL_State::_shead_update()
     _ins->update();
     _barometer->update();
     _compass->read();
+    _gps->update();
 
     _shead->write<InertialSensorMessage>(&shead_state.writeBuffer[0], sizeof(shead_state.writeBuffer));
     _shead_write(&shead_state.writeBuffer[0], InertialSensorMessage::PACKET_LENGTH, 0);
@@ -109,6 +118,12 @@ void SITL_State::_shead_update()
         _shead->write<CompassMessage>(&shead_state.writeBuffer[0], sizeof(shead_state.writeBuffer));
         _shead_write(&shead_state.writeBuffer[0], CompassMessage::PACKET_LENGTH, 0);
         shead_state.compass_last_update = _compass->last_update_usec();
+    }
+
+    if (shead_state.gps_last_update != _gps->last_message_time_ms()) {
+        _shead->write<GPSMessage>(&shead_state.writeBuffer[0], sizeof(shead_state.writeBuffer));
+        _shead_write(&shead_state.writeBuffer[0], GPSMessage::PACKET_LENGTH, 0);
+        shead_state.gps_last_update = _gps->last_message_time_ms();
     }
 
 }

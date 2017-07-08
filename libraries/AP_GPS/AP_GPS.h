@@ -146,7 +146,7 @@ public:
     };
 
     /// Startup initialisation.
-    void init(const AP_SerialManager& serial_manager);
+    void init(const AP_SerialManager& serial_manager, AP_SerialManager::SerialProtocol protocol=AP_SerialManager::SerialProtocol_GPS);
 
     /// Update GPS state based on possible bytes received from the module.
     /// This routine must be called periodically (typically at 10Hz or
