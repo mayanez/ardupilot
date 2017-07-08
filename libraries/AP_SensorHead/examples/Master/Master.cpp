@@ -89,8 +89,7 @@ void SensorHead_Master::setup()
     // Initialize Sensors.
     baro.init();
     ins.init(2000);
-    gps.init(nullptr, serial_manager);
-
+    gps.init(serial_manager, AP_SerialManager::SerialProtocol_SHEAD);
 
     if (!compass.init()) {
         AP_HAL::panic("ERROR: COMPASS INIT\n");

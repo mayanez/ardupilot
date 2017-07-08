@@ -72,7 +72,7 @@ void SensorHead_Slave::setup()
     // Initialize Sensors. These will call shead->registerHandler()
     baro.init();
     ins.init(2000);
-    gps.init(nullptr, serial_manager);
+    gps.init(serial_manager, AP_SerialManager::SerialProtocol_SHEAD);
 
 
     if (!compass.init()) {
