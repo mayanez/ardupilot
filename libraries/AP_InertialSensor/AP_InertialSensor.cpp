@@ -431,8 +431,6 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     AP_GROUPEND
 };
 
-AP_InertialSensor *AP_InertialSensor::_s_instance = nullptr;
-
 AP_InertialSensor::AP_InertialSensor() :
     _gyro_count(0),
     _accel_count(0),
@@ -451,10 +449,6 @@ AP_InertialSensor::AP_InertialSensor() :
     _startup_error_counts_set(false),
     _startup_ms(0)
 {
-    if (_s_instance) {
-        AP_HAL::panic("Too many inertial sensors");
-    }
-    _s_instance = this;
     AP_Param::setup_object_defaults(this, var_info);
     for (uint8_t i=0; i<INS_MAX_BACKENDS; i++) {
         _backends[i] = nullptr;
@@ -496,10 +490,7 @@ AP_InertialSensor::AP_InertialSensor() :
  */
 AP_InertialSensor *AP_InertialSensor::get_instance()
 {
-    if (!_s_instance) {
-        _s_instance = new AP_InertialSensor();
-    }
-    return _s_instance;
+    return (AP_InertialSensor *)AP_Param::find_object("INS_");
 }
 
 /*
@@ -614,14 +605,16 @@ AP_InertialSensor_Backend *AP_InertialSensor::_find_backend(int16_t backend_id, 
 }
 
 void
-AP_InertialSensor::init(uint16_t sample_rate)
+AP_InertialSensor::init(uint16_t sample_rate, bool start_backends)
 {
     // remember the sample rate
     _sample_rate = sample_rate;
     _loop_delta_t = 1.0f / sample_rate;
 
-    if (_gyro_count == 0 && _accel_count == 0) {
-        _start_backends();
+    if (start_backends) {
+        if (_gyro_count == 0 && _accel_count == 0) {
+            _start_backends();
+        }
     }
 
     // initialise accel scale if need be. This is needed as we can't
@@ -675,9 +668,22 @@ AP_InertialSensor::detect_backends(void)
         return;
     }
 
+#if HAL_SHEAD_ENABLED
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    _add_backend(AP_InertialSensor_SensorHead::detect(*this));
+    return;
+#elif HAL_INS_DEFAULT == HAL_INS_SHEAD
+    _add_backend(AP_InertialSensor_SensorHead::detect(*this));
+    return;
+#endif
+#else
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     _add_backend(AP_InertialSensor_SITL::detect(*this));
-#elif HAL_INS_DEFAULT == HAL_INS_HIL
+    return;
+#endif
+#endif
+
+#if HAL_INS_DEFAULT == HAL_INS_HIL
     _add_backend(AP_InertialSensor_HIL::detect(*this));
 #elif HAL_INS_DEFAULT == HAL_INS_MPU60XX_SPI && defined(HAL_INS_DEFAULT_ROTATION)
     _add_backend(AP_InertialSensor_Invensense::probe(*this, hal.spi->get_device(HAL_INS_MPU60x0_NAME),
@@ -803,10 +809,6 @@ AP_InertialSensor::detect_backends(void)
     } else {
         hal.console->printf("aero: onboard IMU not detected\n");
     }
-#elif HAL_INS_DEFAULT == HAL_INS_SHEAD
-    // NOTE: Current assumption is that Slave does not have any sensors.
-    _add_backend(AP_InertialSensor_SensorHead::detect(*this));
-    return;
 #else
     #error Unrecognised HAL_INS_TYPE setting
 #endif
@@ -1329,7 +1331,7 @@ void AP_InertialSensor::wait_for_sample(void)
     }
 
 check_sample:
-#if HAL_INS_DEFAULT == HAL_INS_SHEAD
+#if HAL_INS_DEFAULT == HAL_INS_SHEAD || (HAL_SHEAD_ENABLED && CONFIG_HAL_BOARD == HAL_BOARD_SITL)
     // NOTE: Here we do not wait. Maybe should be like this for all cases.
     bool gyro_available = false;
     bool accel_available = false;

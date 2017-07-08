@@ -80,11 +80,12 @@ void SITL_State::_sitl_setup(const char *home_str)
 #if HAL_SHEAD_ENABLED
     _barometer = (AP_Baro *)AP_Param::find_object("SG_");
     _compass = (Compass *)AP_Param::find_object("SC_");
+    _ins = (AP_InertialSensor *)AP_Param::find_object("SI_");
 #else
     _barometer = (AP_Baro *)AP_Param::find_object("GND_");
     _compass = (Compass *)AP_Param::find_object("COMPASS_");
-#endif
     _ins = (AP_InertialSensor *)AP_Param::find_object("INS_");
+#endif
 
 #if AP_TERRAIN_AVAILABLE
     _terrain = (AP_Terrain *)AP_Param::find_object("TERRAIN_");

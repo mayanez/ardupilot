@@ -68,6 +68,9 @@ void SITL_State::_shead_init()
     _compass->_add_backend(new AP_Compass_SITL(*_compass), nullptr, false);
     _compass->read();
 
+    _ins->_add_backend(AP_InertialSensor_SITL::detect(*_ins));
+    _ins->init(AP_SensorHead::UPDATE_RATE_HZ, false);
+
     fprintf(stdout, "SHEAD SITL INIT\n");
 }
 
@@ -89,8 +92,12 @@ void SITL_State::_shead_update()
     }
     shead_state.last_update = AP_HAL::micros();
 
+    _ins->update();
     _barometer->update();
     _compass->read();
+
+    _shead->write<InertialSensorMessage>(&shead_state.writeBuffer[0], sizeof(shead_state.writeBuffer));
+    _shead_write(&shead_state.writeBuffer[0], InertialSensorMessage::PACKET_LENGTH, 0);
 
     if (shead_state.baro_last_update != _barometer->get_last_update()) {
         _shead->write<BaroMessage>(&shead_state.writeBuffer[0], sizeof(shead_state.writeBuffer));

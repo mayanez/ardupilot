@@ -225,6 +225,7 @@ private:
 
     AP_Baro baro_sitl;
     Compass compass_sitl;
+    AP_InertialSensor ins_sitl;
 #endif
 
     // Mission library
