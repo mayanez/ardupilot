@@ -82,79 +82,95 @@ bool AP_SensorHead::read(uint8_t *buf, size_t len)
 }
 
 template <>
-void AP_SensorHead::write<BaroMessage>(uint8_t *buf, size_t len)
+bool AP_SensorHead::write<BaroMessage>(uint8_t *buf, size_t len)
 {
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_begin(_perf_write);
 #endif
-    if (!_baro) {
-        return;
-    }
+    bool written = false;
 
-    BaroMessage msg{buf, len};
-    msg.setPressure(_baro->get_pressure());
-    msg.setTemperature(_baro->get_temperature());
-    msg.encode();
+    if (_baro && len >= BaroMessage::PACKET_LENGTH) {
+        BaroMessage msg;
+        msg.setPressure(_baro->get_pressure());
+        msg.setTemperature(_baro->get_temperature());
+        auto p = msg.encode();
+        Packet::commit(p, buf, len);
+        written = true;
+    }
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_end(_perf_write);
 #endif
+
+    return written;
 }
 
 template <>
-void AP_SensorHead::write<InertialSensorMessage>(uint8_t *buf, size_t len)
+bool AP_SensorHead::write<InertialSensorMessage>(uint8_t *buf, size_t len)
 {
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_begin(_perf_write);
 #endif
-    if (!_ins) {
-        return;
-    }
+    bool written = false;
 
-    InertialSensorMessage msg{buf, len};
-    msg.setGyro(_ins->get_gyro());
-    msg.setAccel(_ins->get_accel());
-    msg.encode();
+    if (_ins && len >= InertialSensorMessage::PACKET_LENGTH) {
+        InertialSensorMessage msg;
+        msg.setGyro(_ins->get_gyro());
+        msg.setAccel(_ins->get_accel());
+        auto p = msg.encode();
+        Packet::commit(p, buf, len);
+        written = true;
+    }
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_end(_perf_write);
 #endif
+
+    return written;
 }
 
 template <>
-void AP_SensorHead::write<CompassMessage>(uint8_t *buf, size_t len)
+bool AP_SensorHead::write<CompassMessage>(uint8_t *buf, size_t len)
 {
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_begin(_perf_write);
 #endif
-    if (!_compass) {
-        return;
-    }
+    bool written = false;
 
-    CompassMessage msg{buf, len};
-    msg.setField(_compass->get_raw_field());
-    msg.encode();
+    if (_compass && len >= CompassMessage::PACKET_LENGTH) {
+        CompassMessage msg;
+        msg.setField(_compass->get_raw_field());
+        auto p = msg.encode();
+        Packet::commit(p, buf, len);
+        written = true;
+    }
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_end(_perf_write);
 #endif
+
+    return written;
 }
 template <>
-void AP_SensorHead::write<GPSMessage>(uint8_t *buf, size_t len)
+bool AP_SensorHead::write<GPSMessage>(uint8_t *buf, size_t len)
 {
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_begin(_perf_write);
 #endif
-    if (!_gps) {
-        return;
-    }
+    bool written = false;
 
-    GPSMessage msg{buf, len};
-    msg.setState(_gps->get_state());
-    msg.encode();
+    if (_gps && len >= GPSMessage::PACKET_LENGTH) {
+        GPSMessage msg;
+        msg.setState(_gps->get_state());
+        auto p = msg.encode();
+        Packet::commit(p, buf, len);
+        written = true;
+    }
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SHEAD_SLAVE
     hal.util->perf_end(_perf_write);
 #endif
+
+    return written;
 }
 #endif // HAL_SHEAD_ENABLED

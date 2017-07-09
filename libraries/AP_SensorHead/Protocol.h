@@ -29,12 +29,11 @@ public:
 
     typedef uint16_t shead_crc_t;
 
-    // This is to allow packets to be read/write from buffer.
-    // NOTE: Stack usage for message is constant.
+    // NOTE: data will belong to Message. This avoid unnecessary stack usage.
     typedef struct PACKED {
-        shead_hdr_t *hdr;
+        shead_hdr_t hdr;
         uint8_t *data;
-        shead_crc_t *crc;
+        shead_crc_t crc;
     } shead_packet_t;
 
     typedef shead_packet_t raw_t;
@@ -49,31 +48,36 @@ public:
 
     static size_t length(raw_t *p)
     {
-        return sizeof(shead_hdr_t) + p->hdr->len + sizeof(shead_crc_t);
+        return sizeof(shead_hdr_t) + p->hdr.len + sizeof(shead_crc_t);
     }
-
-    /*
-     * Given a buffer point p to appropriate offsets.
-     */
-    // TODO: Consider changing them all to use Iterators & std::array
-    template <class T> static bool setup(raw_t *p, uint8_t *buf, size_t len);
 
     /*
      * Encodes a message of type T into a packet.
      */
     template <class T> static void encode(raw_t *p);
 
+    /*
+     * Writes the packet to the specified buffer.
+     */
+    static inline void commit(raw_t *p, uint8_t *buf, size_t len)
+    {
+        memcpy(buf, &p->hdr, sizeof(shead_hdr_t));
+        memcpy(buf + sizeof(shead_hdr_t), p->data, p->hdr.len);
+        memcpy(buf + sizeof(shead_hdr_t) + p->hdr.len, &p->crc, sizeof(shead_crc_t));
+    }
+
     /* Verifies that a raw_t is valid. */
     static bool verify(raw_t *p);
 
     /*
-     * Points p to proper offsets inside buf.
+     * Decodes packet from raw buffer.
+     * NOTE: Packet data will point to contents inside of buffer.
      */
     static bool decode(raw_t *p, uint8_t *buf, size_t len);
 
     static msgid_t id(raw_t *p)
     {
-        return p->hdr->id;
+        return p->hdr.id;
     }
 
 private:
@@ -99,25 +103,26 @@ enum class msgid_t : uint8_t {
 class Message {
 public:
     /*
-     * Encodes message contents inside buffer
+     * Encodes message into packet.
      */
     virtual Packet::raw_t *encode() = 0;
-
-    /*
-     * Retrieve pointer to data inside of packet.
-     */
-    template <class T> static typename T::data_t *decode(Packet::raw_t *packet)
-    {
-        return reinterpret_cast<typename T::data_t *>(packet->data);
-    }
 
     /*
      * Verify if a valid packet is actually of type T
      */
     template <class T> static bool verify(Packet::raw_t *packet)
     {
-        return packet->hdr->id == T::ID &&
-               packet->hdr->len == sizeof(typename T::data_t);
+        return packet->hdr.id == T::ID &&
+               packet->hdr.len == sizeof(typename T::data_t);
+    }
+
+    /*
+     * Decode Message data from packet.
+     */
+    template <class T>
+    static inline void decode(Packet::raw_t *packet, typename T::data_t *data)
+    {
+        memcpy(data, packet->data, sizeof(typename T::data_t));
     }
 
 protected:
@@ -150,17 +155,18 @@ public:
 
     static const msgid_t ID = msgid_t::BARO;
 
-    /* Messages write data directly to buffer. */
-    BaroMessage(uint8_t *buf, size_t len);
+    BaroMessage() {
+        _packet.data = reinterpret_cast<uint8_t *>(&_data);
+    }
 
     void setPressure(float pressure)
     {
-        _data->pressure = pressure;
+        _data.pressure = pressure;
     }
 
     void setTemperature(float temperature)
     {
-        _data->temperature = temperature;
+        _data.temperature = temperature;
     }
 
     virtual Packet::raw_t *encode()
@@ -169,8 +175,9 @@ public:
         return &_packet;
     }
 
+
 private:
-    data_t *_data;
+    data_t _data;
 };
 
 class InertialSensorMessage : public Message {
@@ -190,20 +197,22 @@ public:
     static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
     static const msgid_t ID = msgid_t::INS;
 
-    InertialSensorMessage(uint8_t *buf, size_t len);
+    InertialSensorMessage() {
+        _packet.data = reinterpret_cast<uint8_t *>(&_data);
+    }
 
     void setGyro(const Vector3f &vec)
     {
-        _data->gyrox = vec.x;
-        _data->gyroy = vec.y;
-        _data->gyroz = vec.z;
+        _data.gyrox = vec.x;
+        _data.gyroy = vec.y;
+        _data.gyroz = vec.z;
     }
 
     void setAccel(const Vector3f &vec)
     {
-        _data->accelx = vec.x;
-        _data->accely = vec.y;
-        _data->accelz = vec.z;
+        _data.accelx = vec.x;
+        _data.accely = vec.y;
+        _data.accelz = vec.z;
     }
 
     virtual Packet::raw_t *encode()
@@ -213,7 +222,7 @@ public:
     }
 
 private:
-    data_t *_data;
+    data_t _data;
 };
 
 class CompassMessage : public Message {
@@ -231,12 +240,14 @@ public:
     static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
     static const msgid_t ID = msgid_t::COMPASS;
 
-    CompassMessage(uint8_t *buf, size_t len);
+    CompassMessage() {
+        _packet.data = reinterpret_cast<uint8_t *>(&_data);
+    }
 
     void setField(const Vector3f &field) {
-        _data->magx = field.x;
-        _data->magy = field.y;
-        _data->magz = field.z;
+        _data.magx = field.x;
+        _data.magy = field.y;
+        _data.magz = field.z;
     }
 
     virtual Packet::raw_t *encode()
@@ -246,33 +257,33 @@ public:
     }
 
 private:
-    data_t *_data;
+    data_t _data;
 };
 
 class GPSMessage : public Message {
 public:
 
     typedef struct PACKED {
-        AP_GPS::GPS_Status status;                     ///< driver fix status
-        uint32_t time_week_ms;              ///< GPS time (milliseconds from start of GPS week)
-        uint16_t time_week;                 ///< GPS week number
+        AP_GPS::GPS_Status status;
+        uint32_t time_week_ms;
+        uint16_t time_week;
         // NOTE: This can be serialized.
-        Location location;                  ///< last fix location
-        float ground_speed;                 ///< ground speed in m/sec
-        float ground_course;                ///< ground course in degrees
-        uint16_t hdop;                      ///< horizontal dilution of precision in cm
-        uint16_t vdop;                      ///< vertical dilution of precision in cm
-        uint8_t num_sats;                   ///< Number of visible satellites
-        float velocityx;                    ///< 3D velocity in m/s, in NED format
+        Location location;
+        float ground_speed;
+        float ground_course;
+        uint16_t hdop;
+        uint16_t vdop;
+        uint8_t num_sats;
+        float velocityx;
         float velocityy;
         float velocityz;
-        float speed_accuracy;               ///< 3D velocity accuracy estimate in m/s
-        float horizontal_accuracy;          ///< horizontal accuracy estimate in m
-        float vertical_accuracy;            ///< vertical accuracy estimate in m
-        bool have_vertical_velocity:1;      ///< does GPS give vertical velocity? Set to true only once available.
-        bool have_speed_accuracy:1;         ///< does GPS give speed accuracy? Set to true only once available.
-        bool have_horizontal_accuracy:1;    ///< does GPS give horizontal position accuracy? Set to true only once available.
-        bool have_vertical_accuracy:1;      ///< does GPS give vertical position accuracy? Set to true only once available.
+        float speed_accuracy;
+        float horizontal_accuracy;
+        float vertical_accuracy;
+        bool have_vertical_velocity:1;
+        bool have_speed_accuracy:1;
+        bool have_horizontal_accuracy:1;
+        bool have_vertical_accuracy:1;
     } data_t;
 
     static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN);
@@ -280,28 +291,30 @@ public:
     static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
     static const msgid_t ID = msgid_t::GPS;
 
-    GPSMessage(uint8_t *buf, size_t len);
+    GPSMessage() {
+        _packet.data = reinterpret_cast<uint8_t *>(&_data);
+    }
 
     void setState(const AP_GPS::GPS_State &state) {
-        _data->status                   = state.status;
-        _data->time_week_ms             = state.time_week_ms;
-        _data->time_week                = state.time_week;
-        _data->location                 = state.location;
-        _data->ground_speed             = state.ground_speed;
-        _data->ground_course            = state.ground_course;
-        _data->hdop                     = state.hdop;
-        _data->vdop                     = state.vdop;
-        _data->num_sats                 = state.num_sats;
-        _data->velocityx                = state.velocity.x;
-        _data->velocityy                = state.velocity.y;
-        _data->velocityz                = state.velocity.z;
-        _data->speed_accuracy           = state.speed_accuracy;
-        _data->horizontal_accuracy      = state.horizontal_accuracy;
-        _data->vertical_accuracy        = state.vertical_accuracy;
-        _data->have_vertical_velocity   = state.have_vertical_velocity;
-        _data->have_speed_accuracy      = state.have_speed_accuracy;
-        _data->have_horizontal_accuracy = state.have_horizontal_accuracy;
-        _data->have_vertical_accuracy   = state.have_vertical_accuracy;
+        _data.status                   = state.status;
+        _data.time_week_ms             = state.time_week_ms;
+        _data.time_week                = state.time_week;
+        _data.location                 = state.location;
+        _data.ground_speed             = state.ground_speed;
+        _data.ground_course            = state.ground_course;
+        _data.hdop                     = state.hdop;
+        _data.vdop                     = state.vdop;
+        _data.num_sats                 = state.num_sats;
+        _data.velocityx                = state.velocity.x;
+        _data.velocityy                = state.velocity.y;
+        _data.velocityz                = state.velocity.z;
+        _data.speed_accuracy           = state.speed_accuracy;
+        _data.horizontal_accuracy      = state.horizontal_accuracy;
+        _data.vertical_accuracy        = state.vertical_accuracy;
+        _data.have_vertical_velocity   = state.have_vertical_velocity;
+        _data.have_speed_accuracy      = state.have_speed_accuracy;
+        _data.have_horizontal_accuracy = state.have_horizontal_accuracy;
+        _data.have_vertical_accuracy   = state.have_vertical_accuracy;
     }
 
     virtual Packet::raw_t *encode()
@@ -310,10 +323,8 @@ public:
         return &_packet;
     }
 
-
-
 private:
-    data_t *_data;
+    data_t _data;
 };
 
 } // namespace SensorHead

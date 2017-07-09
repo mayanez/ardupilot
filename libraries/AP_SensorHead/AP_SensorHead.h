@@ -36,6 +36,7 @@ public:
     {
         _baro = baro;
     }
+
     void registerSensor(AP_InertialSensor *ins)
     {
         _ins = ins;
@@ -101,7 +102,7 @@ public:
      * makes sense make member variable.
      */
     template <class T>
-    void  write(uint8_t *buf, size_t len);
+    bool  write(uint8_t *buf, size_t len);
 
     bool init();
 
@@ -140,11 +141,12 @@ private:
         if (!Message::verify<MessageType>(packet)) {
             return;
         }
-        auto *data = Message::decode<MessageType>(packet);
+        typename MessageType::data_t data{};
+        Message::decode<MessageType>(packet, &data);
         if (!handler) {
             return;
         }
-        handler->handle(data);
+        handler->handle(&data);
     }
 };
 #endif // HAL_SHEAD_ENABLED
