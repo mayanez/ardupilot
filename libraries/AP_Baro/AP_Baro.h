@@ -179,6 +179,12 @@ private:
         float p_correction;
     } sensors[BARO_MAX_INSTANCES];
 
+    struct {
+        float temperature;
+        float pressure;
+        uint32_t last_update_ms;
+    } raw_sensor[BARO_MAX_INSTANCES];
+
     AP_Float                            _alt_offset;
     float                               _alt_offset_active;
     AP_Int8                             _primary_baro; // primary chosen by user
