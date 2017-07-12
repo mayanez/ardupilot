@@ -217,6 +217,11 @@ class sitl(Board):
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_NONE',
         )
 
+        if cfg.env.SENSORHUB:
+            env.DEFINES.update(
+                HAL_SENSORHUB_ENABLED = 'SENSORHUB_ENABLE'
+            )
+
         if not cfg.env.DEBUG:
             env.CXXFLAGS += [
                 '-O3',
