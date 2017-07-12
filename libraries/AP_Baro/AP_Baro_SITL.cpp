@@ -103,6 +103,9 @@ void AP_Baro_SITL::_timer()
 
     temperature_adjustment(p, T);
 
+    // TODO: Do I need a lock here???
+    publish_raw(instance, p, T);
+
     _recent_press = p;
     _recent_temp = T;
     _has_sample = true;
