@@ -28,4 +28,6 @@ protected:
 
     // semaphore for access to shared frontend data
     AP_HAL::Semaphore *_sem;    
+
+    void publish_raw(uint8_t instance, float pressure, float temperature);
 };

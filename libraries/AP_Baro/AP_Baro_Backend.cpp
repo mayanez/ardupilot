@@ -21,3 +21,14 @@ void AP_Baro_Backend::_copy_to_frontend(uint8_t instance, float pressure, float 
     _frontend.sensors[instance].temperature = temperature;
     _frontend.sensors[instance].last_update_ms = AP_HAL::millis();
 }
+
+void AP_Baro_Backend::publish_raw(uint8_t instance, float pressure, float temperature)
+{
+    if (instance >= _frontend._num_sensors) {
+        return;
+    }
+
+    _frontend.raw_sensor[instance].pressure = pressure;
+    _frontend.raw_sensor[instance].temperature = temperature;
+    _frontend.raw_sensor[instance].last_update_ms = AP_HAL::millis();
+}
