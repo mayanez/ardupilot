@@ -153,6 +153,14 @@ class Board:
                 '-O0',
             ]
 
+        if cfg.env.SENSORHUB:
+            env.DEFINES.update(
+                HAL_SENSORHUB_ENABLED = 'SENSORHUB_ENABLE'
+            )
+            env.AP_LIBRARIES += [
+                'AP_SensorHub'
+            ]
+
         if cfg.env.DEST_OS == 'darwin':
             env.LINKFLAGS += [
                 '-Wl,-dead_strip',
@@ -171,7 +179,7 @@ class Board:
             env.CXXFLAGS += [
                 '-Wno-error=cast-align',
             ]
-            
+
             env.DEFINES.update(
                 UAVCAN_CPP_VERSION = 'UAVCAN_CPP03',
                 UAVCAN_NO_ASSERTIONS = 1,
@@ -275,6 +283,24 @@ class linux(Board):
             waflib.Options.commands.append('rsync')
             # Avoid infinite recursion
             bld.options.upload = False
+
+class sensorhub_x86(linux):
+    def configure_env(self, cfg, env):
+        super(sensorhub_x86, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_SENSORHUB_SINK',
+        )
+
+class sensorhub_arm(linux):
+    toolchain = 'arm-linux-gnueabihf'
+
+    def configure_env(self, cfg, env):
+        super(sensorhub_arm, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_SENSORHUB_SINK',
+        )
 
 class minlure(linux):
     def configure_env(self, cfg, env):

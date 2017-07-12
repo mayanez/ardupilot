@@ -108,6 +108,8 @@
 /* Heat Types */
 #define HAL_LINUX_HEAT_PWM 1
 
+#define SENSORHUB_DISABLE 0
+#define SENSORHUB_ENABLE 1
 /* CPU classes, used to select if CPU intensive algorithms should be used
  * Note that these are only approximate, not exact CPU speeds. */
 
@@ -174,6 +176,10 @@
 
 #ifndef HAL_WITH_UAVCAN
 #define HAL_WITH_UAVCAN 0
+#endif
+
+#ifndef HAL_SENSORHUB_ENABLED
+#define HAL_SENSORHUB_ENABLED SENSORHUB_DISABLE
 #endif
 
 // this is used as a general mechanism to make a 'small' build by
