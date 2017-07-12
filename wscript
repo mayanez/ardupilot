@@ -113,6 +113,11 @@ order to save typing.
         default=False,
         help='Force a static build')
 
+    g.add_option('--sensorhub',
+        action='store_true',
+        default=False,
+        help='Enable SensorHub')
+
 def _collect_autoconfig_files(cfg):
     for m in sys.modules.values():
         paths = []
@@ -144,6 +149,7 @@ def configure(cfg):
 
     cfg.env.BOARD = cfg.options.board
     cfg.env.DEBUG = cfg.options.debug
+    cfg.env.SENSORHUB = cfg.options.sensorhub
 
     # Allow to differentiate our build from the make build
     cfg.define('WAF_BUILD', 1)
