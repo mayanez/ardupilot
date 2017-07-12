@@ -2,6 +2,10 @@
 
 #include "AP_Baro.h"
 
+#if HAL_SENSORHUB_ENABLED
+class AP_SensorHub;
+#endif
+
 class AP_Baro_Backend
 {
 public:
@@ -20,6 +24,12 @@ public:
     // callback for UAVCAN messages
     virtual void handle_baro_msg(float pressure, float temperature) {}
 
+#if HAL_SENSORHUB_ENABLED
+    virtual void setSensorHub(AP_SensorHub *shub) {
+        _shub = shub;
+    }
+#endif
+
 protected:
     // reference to frontend object
     AP_Baro &_frontend;
@@ -30,4 +40,8 @@ protected:
     AP_HAL::Semaphore *_sem;    
 
     void publish_raw(uint8_t instance, float pressure, float temperature);
+
+#if HAL_SENSORHUB_ENABLED
+    AP_SensorHub *_shub;
+#endif
 };
