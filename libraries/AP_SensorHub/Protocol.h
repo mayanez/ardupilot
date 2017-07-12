@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AP_SensorHub_Debug.h"
+
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_GPS/AP_GPS.h>
@@ -111,6 +113,9 @@ enum class msgid_t : uint8_t {
     UNKNOWN,
     LAST_MSG_ENTRY,
 };
+
+    static const char *msgid_t_names[] __attribute__((unused)) = {"Gyro", "Accel", "Compass", "Baro",
+                                      "GPS", "Param", "Unknown"};
 
 class Message {
 public:
