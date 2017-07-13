@@ -131,6 +131,10 @@ void Copter::init_ardupilot()
     BoardConfig_CAN.init();
 #endif
 
+#if HAL_SENSORHUB_ENABLED
+    setup_shub();
+#endif
+
     // init cargo gripper
 #if GRIPPER_ENABLED == ENABLED
     g2.gripper.init();
@@ -209,7 +213,8 @@ void Copter::init_ardupilot()
 
     // Do GPS init
     gps.set_log_gps_bit(MASK_LOG_GPS);
-    gps.init(serial_manager);
+
+    gps.init(serial_manager, gps_serial_protocol);
 
     init_compass();
 
@@ -333,6 +338,10 @@ void Copter::init_ardupilot()
 
     // flag that initialisation has completed
     ap.initialised = true;
+
+#if HAL_SENSORHUB_ENABLED
+    shub->start();
+#endif
 }
 
 
@@ -722,3 +731,14 @@ void Copter::allocate_motors(void)
     // upgrade parameters. This must be done after allocating the objects
     convert_pid_parameters();
 }
+
+#if HAL_SENSORHUB_ENABLED
+void Copter::setup_shub()
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SENSORHUB_SINK
+    gps_serial_protocol = AP_SerialManager::SerialProtocol_SENSORHUB;
+#endif
+
+    shub->init(serial_manager);
+}
+#endif
