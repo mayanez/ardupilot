@@ -434,8 +434,6 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     AP_GROUPEND
 };
 
-AP_InertialSensor *AP_InertialSensor::_s_instance = nullptr;
-
 AP_InertialSensor::AP_InertialSensor() :
     _gyro_count(0),
     _accel_count(0),
@@ -454,10 +452,6 @@ AP_InertialSensor::AP_InertialSensor() :
     _startup_error_counts_set(false),
     _startup_ms(0)
 {
-    if (_s_instance) {
-        AP_HAL::panic("Too many inertial sensors");
-    }
-    _s_instance = this;
     AP_Param::setup_object_defaults(this, var_info);
     for (uint8_t i=0; i<INS_MAX_BACKENDS; i++) {
         _backends[i] = nullptr;
@@ -499,10 +493,8 @@ AP_InertialSensor::AP_InertialSensor() :
  */
 AP_InertialSensor *AP_InertialSensor::get_instance()
 {
-    if (!_s_instance) {
-        _s_instance = new AP_InertialSensor();
-    }
-    return _s_instance;
+    memcpy(&_instance, AP_Param::find_object("INS_"), sizeof(_instance));
+    return _instance;
 }
 
 /*
