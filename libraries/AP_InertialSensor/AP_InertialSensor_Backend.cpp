@@ -13,6 +13,9 @@ AP_InertialSensor_Backend::AP_InertialSensor_Backend(AP_InertialSensor &imu) :
     _imu(imu)
 {
     _sem = hal.util->new_semaphore();
+#if HAL_SENSORHUB_ENABLED
+    _shub = AP_SensorHub::get_instance();
+#endif
 }
 
 /*
@@ -163,6 +166,18 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
     // call gyro_sample hook if any
     AP_Module::call_hook_gyro_sample(instance, dt, gyro);
 
+#if HAL_SENSORHUB_ENABLED
+    if (_shub && _shub->isSource()) {
+        GyroMessage msg;
+        msg.setInstance(instance);
+        msg.setId(_imu._gyro_id[instance]);
+        msg.setDt(dt);
+        msg.setGyro(gyro);
+        auto packet = msg.encode();
+        _shub->write(packet);
+    }
+#endif
+
     // push gyros if optical flow present
     if (hal.opticalflow)
         hal.opticalflow->push_gyro(gyro.x, gyro.y, dt);
@@ -281,6 +296,19 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
     // call accel_sample hook if any
     AP_Module::call_hook_accel_sample(instance, dt, accel, fsync_set);
     
+
+#if HAL_SENSORHUB_ENABLED
+    if (_shub && _shub->isSource()) {
+        AccelMessage msg;
+        msg.setInstance(instance);
+        msg.setId(_imu._accel_id[instance]);
+        msg.setDt(dt);
+        msg.setAccel(accel);
+        auto packet = msg.encode();
+        _shub->write(packet);
+    }
+#endif
+
     _imu.calc_vibration_and_clipping(instance, accel, dt);
 
     if (_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
