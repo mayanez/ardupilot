@@ -281,6 +281,15 @@ class linux(Board):
             # Avoid infinite recursion
             bld.options.upload = False
 
+class sensorhub(linux):
+    def configure_env(self, cfg, env):
+        super(sensorhub, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            HAL_SENSORHUB_ENABLED = 'SENSORHUB_ENABLE',
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_SENSORHUB_SINK',
+        )
+
 class minlure(linux):
     def configure_env(self, cfg, env):
         super(minlure, self).configure_env(cfg, env)
