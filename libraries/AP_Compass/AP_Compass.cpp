@@ -24,6 +24,9 @@
 #include "AP_Compass_UAVCAN.h"
 #endif
 #include "AP_Compass_MMC3416.h"
+#if HAL_SENSORHUB_ENABLED
+#include "AP_Compass_SensorHub.h"
+#endif
 #include "AP_Compass.h"
 
 extern AP_HAL::HAL& hal;
@@ -516,11 +519,18 @@ void Compass::_detect_backends(void)
         } \
     } while (0)
 
+#if HAL_SENSORHUB_ENABLED
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL || HAL_COMPASS_DEFAULT == HAL_BARO_SENSORHUB
+    ADD_BACKEND(new AP_Compass_SensorHub(*this), nullptr, false);
+    return;
+#endif
+#else
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     ADD_BACKEND(new AP_Compass_SITL(*this), nullptr, false);
     return;
 #endif
-    
+#endif
+
 #if HAL_WITH_UAVCAN
     bool added;
     do {
