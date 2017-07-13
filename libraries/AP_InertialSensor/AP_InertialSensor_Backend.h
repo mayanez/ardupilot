@@ -28,6 +28,10 @@
 
 #include "AP_InertialSensor.h"
 
+#if HAL_SENSORHUB_ENABLED
+#include <AP_SensorHub/AP_SensorHub.h>
+#endif
+
 class AuxiliaryBus;
 class DataFlash_Class;
 
@@ -93,6 +97,13 @@ public:
         DEVTYPE_GYR_MPU9250  = 0x24
     };
         
+
+#if HAL_SENSORHUB_ENABLED
+    virtual void setSensorHub(AP_SensorHub *shub) {
+        _shub = shub;
+    }
+#endif
+
 protected:
     // access to frontend
     AP_InertialSensor &_imu;
@@ -216,4 +227,8 @@ protected:
     // note that each backend is also expected to have a static detect()
     // function which instantiates an instance of the backend sensor
     // driver if the sensor is available
+
+#if HAL_SENSORHUB_ENABLED
+    AP_SensorHub *_shub;
+#endif
 };
