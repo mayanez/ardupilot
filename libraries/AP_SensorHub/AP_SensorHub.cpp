@@ -1,4 +1,5 @@
 #include "AP_SensorHub.h"
+#include <DataFlash/DataFlash.h>
 
 #if HAL_SENSORHUB_ENABLED
 
@@ -76,14 +77,50 @@ bool AP_SensorHub::handlePacket(Packet::packet_t *packet)
 int AP_SensorHub::read(uint8_t *buf, size_t len)
 {
     Packet::packet_t p;
+    auto begin = AP_HAL::micros64();
     auto decoded = Packet::decode(&p, buf, len);
-
-    if (static_cast<decode_t>(decoded) == decode_t::SUCCESS) {
+    auto decode_status = static_cast<decode_t>(decoded) == decode_t::SUCCESS;
+    if (decode_status) {
         handlePacket(&p);
+    }
+
+    if (_dataflash) {
+        auto now = AP_HAL::micros64();
+        auto processTime = now - begin;
+        struct log_SHUB_RW pkt = {
+            LOG_PACKET_HEADER_INIT((uint8_t)(LOG_SHUB_RW_MSG)),
+            time_us : now,
+            msg_id : static_cast<uint8_t>(Packet::id(&p)),
+            process_time : processTime,
+            status : decode_status,
+            rw  : 0
+        };
+        _dataflash->WriteBlock(&pkt, sizeof(pkt));
     }
 
     return decoded;
 }
 
+void AP_SensorHub::write(Packet::packet_t *packet) {
+    auto begin = AP_HAL::micros64();
+
+    for (int i = 0; i < SENSORHUB_MAX_PORTS; i++) {
+        _port[i]->write(packet, Packet::length(packet));
+    }
+
+    if (_dataflash) {
+        auto now = AP_HAL::micros64();
+        auto processTime = now - begin;
+        struct log_SHUB_RW pkt = {
+            LOG_PACKET_HEADER_INIT((uint8_t)(LOG_SHUB_RW_MSG)),
+            time_us : now,
+            msg_id : static_cast<uint8_t>(Packet::id(packet)),
+            process_time : processTime,
+            status : 1, // TODO: consider making write return a value to use.
+            rw : 1
+        };
+        _dataflash->WriteBlock(&pkt, sizeof(pkt));
+    }
+}
 
 #endif

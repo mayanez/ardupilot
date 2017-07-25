@@ -4,6 +4,8 @@
 
 #if HAL_SENSORHUB_ENABLED
 
+class DataFlash_Class;
+
 #include "Protocol.h"
 #include "AP_SensorHub_IO.h"
 #include "AP_SensorHub_Handler.h"
@@ -72,11 +74,7 @@ public:
     /*
      * Forward packet to IO port.
      */
-    void write(Packet::packet_t *packet) {
-        for (int i = 0; i < SENSORHUB_MAX_PORTS; i++) {
-            _port[i]->write(packet, Packet::length(packet));
-        }
-    }
+    void write(Packet::packet_t *packet);
 
     void setSourceMode() {
         _sourceMode = true;
@@ -90,10 +88,18 @@ public:
         return _sourceMode;
     }
 
+    /* Explicitly set DataFlash logging. This can be useful for debugging.
+     *  Under normal operation it should not be set to avoid overhead.
+     */
+    void setDataFlash(DataFlash_Class *dataflash) {
+        _dataflash = dataflash;
+    }
+
 
 private:
     static bool _initialized;
     static AP_SensorHub _instance;
+    DataFlash_Class *_dataflash;
 
     bool _sourceMode;
 
