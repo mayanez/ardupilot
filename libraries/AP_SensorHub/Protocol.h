@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AP_SensorHub_Debug.h"
+
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_GPS/AP_GPS.h>
@@ -16,6 +18,8 @@ public:
     static const uint8_t MAGIC = 0xFC;
     static const uint8_t VERSION = 0;
 
+    static uint32_t sequence_counter;
+
     // float conforms to IEEE 754.
     // NOTE: May not be entirely reliable, but should be sufficient.
     // https://stackoverflow.com/questions/5777484/how-to-check-if-c-compiler-uses-ieee-754-floating-point-standard
@@ -26,6 +30,7 @@ public:
         uint8_t ver;
         uint8_t len;
         msgid_t id;
+        uint32_t seq;
         uint32_t timestamp;
     } hdr_t;
 

@@ -6,6 +6,7 @@
 
 class DataFlash_Class;
 
+#include "AP_SensorHub_Debug.h"
 #include "Protocol.h"
 #include "AP_SensorHub_IO.h"
 #include "AP_SensorHub_Handler.h"
@@ -139,5 +140,14 @@ private:
         }
         handler->handle(&data);
     }
+
+#if SENSORHUB_DEBUG
+    bool _notFirstPacket;
+    uint32_t _readSeq;
+    uint32_t _packetLoss;
+    uint32_t _lastPacketTime;
+    float _simPacketLoss;
+#endif
+
 };
 #endif

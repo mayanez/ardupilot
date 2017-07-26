@@ -4,6 +4,8 @@
 
 using namespace SensorHub;
 
+uint32_t Packet::sequence_counter = 0;
+
 template <class T>
 void Packet::encode(packet_t *p)
 {
@@ -11,6 +13,9 @@ void Packet::encode(packet_t *p)
     p->hdr.ver   = VERSION;
     p->hdr.id    = T::ID;
     p->hdr.len   = sizeof(typename T::data_t);
+#if SENSORHUB_DEBUG
+    p->hdr.seq   = sequence_counter++;
+#endif
     p->hdr.timestamp = AP_HAL::micros();
 
     p->crc = crc16_ccitt(reinterpret_cast<uint8_t *>(&p->hdr),

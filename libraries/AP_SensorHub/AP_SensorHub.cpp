@@ -1,5 +1,6 @@
 #include "AP_SensorHub.h"
 #include <DataFlash/DataFlash.h>
+#include <AP_Math/AP_Math.h>
 
 #if HAL_SENSORHUB_ENABLED
 
@@ -82,6 +83,32 @@ int AP_SensorHub::read(uint8_t *buf, size_t len)
     auto decode_status = static_cast<decode_t>(decoded) == decode_t::SUCCESS;
     if (decode_status) {
         handlePacket(&p);
+#if SENSORHUB_DEBUG
+
+        if (!_notFirstPacket) {
+            _notFirstPacket = true;
+            hal.console->printf("AP_SensorHub: First packet received!\n");
+        } else {
+
+            if (p.hdr.seq != _readSeq + 1) {
+                // A packet was dropped.
+
+                if (p.hdr.seq < _readSeq) {
+                    // Seq has wrapped around.
+                    _packetLoss += UINT32_MAX - _readSeq;
+                } else {
+                    _packetLoss += p.hdr.seq - _readSeq;
+                }
+
+                auto elapsed = begin - _lastPacketTime;
+                hal.console->printf("AP_SensorHub: Packet Loss = %u; Elapsed: %u \n", _packetLoss, elapsed);
+            }
+
+        }
+
+        _readSeq = p.hdr.seq;
+        _lastPacketTime = begin;
+#endif
     }
 
     if (_dataflash) {
