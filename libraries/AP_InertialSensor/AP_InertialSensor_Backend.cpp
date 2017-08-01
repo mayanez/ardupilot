@@ -136,9 +136,9 @@ void AP_InertialSensor_Backend::_publish_gyro(uint8_t instance, const Vector3f &
 
 void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
                                                             const Vector3f &gyro,
-                                                            uint64_t sample_us)
+                                                            uint64_t sample_us,
+                                                            float dt)
 {
-    float dt;
 
     _update_sensor_rate(_imu._sample_gyro_count[instance], _imu._sample_gyro_start_us[instance],
                         _imu._gyro_raw_sample_rates[instance]);
@@ -152,14 +152,18 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
       difference between the two is whether sample_us is provided.
      */
     if (sample_us != 0 && _imu._gyro_last_sample_us[instance] != 0) {
-        dt = (sample_us - _imu._gyro_last_sample_us[instance]) * 1.0e-6;
+        if (dt == 0) {
+            dt = (sample_us - _imu._gyro_last_sample_us[instance]) * 1.0e-6;
+        }
     } else {
         // don't accept below 100Hz
         if (_imu._gyro_raw_sample_rates[instance] < 100) {
             return;
         }
 
-        dt = 1.0f / _imu._gyro_raw_sample_rates[instance];
+        if (dt == 0) {
+            dt = 1.0f / _imu._gyro_raw_sample_rates[instance];
+        }
     }
     _imu._gyro_last_sample_us[instance] = sample_us;
 
@@ -173,6 +177,7 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
         msg.setId(_imu._gyro_id[instance]);
         msg.setSampleUs(sample_us);
         msg.setGyro(gyro);
+        msg.setDt(dt);
         auto packet = msg.encode();
         _shub->write(packet);
     }
@@ -266,9 +271,9 @@ void AP_InertialSensor_Backend::_publish_accel(uint8_t instance, const Vector3f 
 void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
                                                              const Vector3f &accel,
                                                              uint64_t sample_us,
-                                                             bool fsync_set)
+                                                             bool fsync_set,
+                                                             float dt)
 {
-    float dt;
 
     _update_sensor_rate(_imu._sample_accel_count[instance], _imu._sample_accel_start_us[instance],
                         _imu._accel_raw_sample_rates[instance]);
@@ -282,20 +287,24 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
       difference between the two is whether sample_us is provided.
      */
     if (sample_us != 0 && _imu._accel_last_sample_us[instance] != 0) {
-        dt = (sample_us - _imu._accel_last_sample_us[instance]) * 1.0e-6;
+        if (dt == 0) {
+            dt = (sample_us - _imu._accel_last_sample_us[instance]) * 1.0e-6;
+        }
     } else {
         // don't accept below 100Hz
         if (_imu._accel_raw_sample_rates[instance] < 100) {
             return;
         }
 
-        dt = 1.0f / _imu._accel_raw_sample_rates[instance];
+        if (dt == 0) {
+            dt = 1.0f / _imu._accel_raw_sample_rates[instance];
+        }
     }
     _imu._accel_last_sample_us[instance] = sample_us;
 
     // call accel_sample hook if any
     AP_Module::call_hook_accel_sample(instance, dt, accel, fsync_set);
-    
+
 
 #if HAL_SENSORHUB_ENABLED
     if (_shub && _shub->isSource()) {
@@ -304,6 +313,7 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
         msg.setId(_imu._accel_id[instance]);
         msg.setAccel(accel);
         msg.setSampleUs(sample_us);
+        msg.setDt(dt);
         auto packet = msg.encode();
         _shub->write(packet);
     }
