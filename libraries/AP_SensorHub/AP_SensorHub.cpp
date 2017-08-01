@@ -117,8 +117,9 @@ int AP_SensorHub::read(uint8_t *buf, size_t len)
         struct log_SHUB_RW pkt = {
             LOG_PACKET_HEADER_INIT((uint8_t)(LOG_SHUB_RW_MSG)),
             time_us : now,
-            msg_id : static_cast<uint8_t>(Packet::id(&p)),
             process_time : processTime,
+            packet_loss : _packetLoss,
+            msg_id : static_cast<uint8_t>(Packet::id(&p)),
             status : decode_status,
             rw  : 0
         };
@@ -141,8 +142,9 @@ void AP_SensorHub::write(Packet::packet_t *packet) {
         struct log_SHUB_RW pkt = {
             LOG_PACKET_HEADER_INIT((uint8_t)(LOG_SHUB_RW_MSG)),
             time_us : now,
-            msg_id : static_cast<uint8_t>(Packet::id(packet)),
             process_time : processTime,
+            packet_loss : _packetLoss,
+            msg_id : static_cast<uint8_t>(Packet::id(packet)),
             status : 1, // TODO: consider making write return a value to use.
             rw : 1
         };
