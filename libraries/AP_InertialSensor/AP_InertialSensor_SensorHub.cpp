@@ -48,8 +48,7 @@ void GyroMessageHandler::handle(GyroMessage::data_t *data)
             _backend->_gyro[ins].z = data->gyroz;
             _backend->_last_timestamp[ins] = AP_HAL::micros64();
 
-            // NOTE: We send the original sample time to notify()
-            _backend->_notify_new_gyro_raw_sample(ins, _backend->_gyro[ins], data->sample_us);
+            _backend->_notify_new_gyro_raw_sample(ins, _backend->_gyro[ins], AP_HAL::micros64(), data->dt);
             _count++;
         } else {
             hal.console->printf("ERROR: GYRO data invalid!\n");
@@ -88,7 +87,7 @@ void AccelMessageHandler::handle(AccelMessage::data_t *data)
             _backend->_accel[ins].z = data->accelz;
             _backend->_last_timestamp[ins] = AP_HAL::micros64();
 
-            _backend->_notify_new_accel_raw_sample(ins, _backend->_accel[ins], data->sample_us);
+            _backend->_notify_new_accel_raw_sample(ins, _backend->_accel[ins], AP_HAL::micros64(), false, data->dt);
             _count++;
         } else {
             hal.console->printf("ERROR: ACCEL data invalid!\n");
