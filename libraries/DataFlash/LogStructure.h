@@ -859,8 +859,9 @@ struct PACKED log_Beacon {
 struct PACKED log_SHUB_RW {
     LOG_PACKET_HEADER;
     uint64_t time_us;
-    uint8_t msg_id;
     uint64_t process_time;
+    uint32_t packet_loss;
+    uint8_t msg_id;
     uint8_t status;
     uint8_t rw; // NOTE: 0 - read, 1 - write
 };
