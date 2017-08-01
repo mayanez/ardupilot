@@ -156,9 +156,9 @@ public:
 class BaroMessage : public Message {
 public:
     typedef struct PACKED {
-        uint8_t instance;
         float pressure;
         float temperature;
+        uint8_t instance;
     } data_t;
 
     // NOTE: If this fails, need to change len data type
@@ -201,12 +201,13 @@ private:
 class GyroMessage : public Message {
 public:
     typedef struct PACKED {
-        uint8_t instance;
+        uint64_t sample_us;
         uint32_t id;
         float gyrox;
         float gyroy;
         float gyroz;
-        uint64_t sample_us;
+        float dt;
+        uint8_t instance;
     } data_t;
 
     static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN, "PACKET DATA LENGTH EXCEEDED");
@@ -240,6 +241,11 @@ public:
         _data.sample_us = sample_us;
     }
 
+    void setDt(float dt)
+    {
+        _data.dt = dt;
+    }
+
     virtual Packet::packet_t *encode()
     {
         Packet::encode<GyroMessage>(&_packet);
@@ -252,12 +258,13 @@ private:
 class AccelMessage : public Message {
 public:
     typedef struct PACKED {
-        uint8_t instance;
+        uint64_t sample_us;
         uint32_t id;
         float accelx;
         float accely;
         float accelz;
-        uint64_t sample_us;
+        float dt;
+        uint8_t instance;
     } data_t;
 
     static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN, "PACKET DATA LENGTH EXCEEDED");
@@ -291,6 +298,11 @@ public:
         _data.sample_us = sample_us;
     }
 
+    void setDt(float dt)
+    {
+        _data.dt = dt;
+    }
+
     virtual Packet::packet_t *encode()
     {
         Packet::encode<AccelMessage>(&_packet);
@@ -306,10 +318,10 @@ public:
 
     // These are the raw fields in body frame.
     typedef struct {
-        uint8_t instance;
         float magx;
         float magy;
         float magz;
+        uint8_t instance;
     } data_t;
 
     static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN, "PACKET DATA LENGTH EXCEEDED");
@@ -345,23 +357,22 @@ class GPSMessage : public Message {
 public:
 
     typedef struct PACKED {
-        uint8_t instance;
         AP_GPS::GPS_Status status;
-        uint32_t time_week_ms;
-        uint16_t time_week;
-        // NOTE: This can be serialized.
         Location location;
         float ground_speed;
         float ground_course;
-        uint16_t hdop;
-        uint16_t vdop;
-        uint8_t num_sats;
         float velocityx;
         float velocityy;
         float velocityz;
         float speed_accuracy;
         float horizontal_accuracy;
         float vertical_accuracy;
+        uint32_t time_week_ms;
+        uint16_t time_week;
+        uint16_t hdop;
+        uint16_t vdop;
+        uint8_t num_sats;
+        uint8_t instance;
         bool have_vertical_velocity:1;
         bool have_speed_accuracy:1;
         bool have_horizontal_accuracy:1;
