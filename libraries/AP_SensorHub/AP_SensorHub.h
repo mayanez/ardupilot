@@ -15,7 +15,7 @@ class DataFlash_Class;
 
 using namespace SensorHub;
 
-#define SENSORHUB_MAX_PORTS 1
+#define SENSORHUB_MAX_PORTS 2
 
 class AP_SensorHub {
 public:

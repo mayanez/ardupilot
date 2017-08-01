@@ -133,7 +133,9 @@ void AP_SensorHub::write(Packet::packet_t *packet) {
     auto begin = AP_HAL::micros64();
 
     for (int i = 0; i < SENSORHUB_MAX_PORTS; i++) {
-        _port[i]->write(packet, Packet::length(packet));
+        if (_port[i]) {
+            _port[i]->write(packet, Packet::length(packet));
+        }
     }
 
     if (_dataflash) {
