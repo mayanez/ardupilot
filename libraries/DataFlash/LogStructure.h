@@ -1161,12 +1161,12 @@ Format characters in the format string for binary log messages
 // #endif
 
 #define LOG_SENSORHUB_STRUCTURES \
-    { LOG_MSG_SHUB_RW, sizeof(log_SHUB_RW), \
-      "SHRW", "QbQbb", "TimeUS,msgId,proccessTime,status,rw" }
+    { LOG_SHUB_RW_MSG, sizeof(log_SHUB_RW), \
+      "SHRW", "QQEBBB", "TimeUS,processTime,packetLoss,msgId,status,rw" }
 
 
 #if HAL_SENSORHUB_ENABLED
-#define LOG_COMMON_STRUCTURES LOG_BASE_STRUCTURES, LOG_EXTRA_STRUCTURES, LOG_SBP_STRUCTURES LOG_SENSORHUB_STRUCTURES
+#define LOG_COMMON_STRUCTURES LOG_BASE_STRUCTURES, LOG_EXTRA_STRUCTURES, LOG_SBP_STRUCTURES, LOG_SENSORHUB_STRUCTURES
 #else
 #define LOG_COMMON_STRUCTURES LOG_BASE_STRUCTURES, LOG_EXTRA_STRUCTURES, LOG_SBP_STRUCTURES
 #endif
