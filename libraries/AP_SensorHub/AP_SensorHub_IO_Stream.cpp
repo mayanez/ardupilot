@@ -3,6 +3,8 @@
 
 #if HAL_SENSORHUB_ENABLED
 
+extern const AP_HAL::HAL& hal;
+
 void AP_SensorHub_IO_Stream::read()
 {
     if (!_isInputInitialized()) {
@@ -26,6 +28,34 @@ void AP_SensorHub_IO_Stream::read()
                 recvBuffer.advance(nBytes);
             }
         }
+    }
+}
+
+void AP_SensorHub_IO_Stream::write(Packet::packet_t *packet, size_t len)
+{
+    if (!_isOutputInitialized()) {
+        return;
+    }
+
+    if (_sem_write->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+
+        if (_outputStream->txspace() >= len) {
+            Packet::commit(packet, &writeBuffer[0], packet->hdr.len);
+            auto write_bytes = _outputStream->write(&writeBuffer[0], len);
+            if (write_bytes != len) {
+                _write_error++;
+                #if SENSORHUB_DEBUG
+                hal.console->printf("AP_SensorHub - Write Error: %u\n", _write_error);
+                #endif
+            }
+        } else {
+            _write_drop++;
+            #if SENSORHUB_DEBUG
+            hal.console->printf("AP_SensorHub - Seq: %u Write Drop: %u\n", packet->hdr.seq, _write_drop);
+            #endif
+        }
+
+        _sem_write->give();
     }
 }
 #endif

@@ -32,8 +32,14 @@ public:
             return;
         }
 
-        Packet::commit(packet, &writeBuffer[0], packet->hdr.len);
-        ::write(_outputFd, &writeBuffer, len);
+        if (_sem_write->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+            Packet::commit(packet, &writeBuffer[0], packet->hdr.len);
+            auto write_bytes = ::write(_outputFd, &writeBuffer, len);
+            if (write_bytes != len) {
+                _write_error++;
+            }
+            _sem_write->give();
+        }
     }
 
 private:

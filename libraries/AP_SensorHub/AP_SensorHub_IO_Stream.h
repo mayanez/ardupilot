@@ -23,15 +23,7 @@ public:
 
     virtual void read();
 
-    virtual void write(Packet::packet_t *packet, size_t len)
-    {
-        if (!_isOutputInitialized()) {
-            return;
-        }
-
-        Packet::commit(packet, &writeBuffer[0], packet->hdr.len);
-        _outputStream->write(&writeBuffer[0], len);
-    }
+    virtual void write(Packet::packet_t *packet, size_t len);
 
 private:
     bool _isInputInitialized() {
