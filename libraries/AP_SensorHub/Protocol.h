@@ -110,6 +110,9 @@ enum class msgid_t : uint8_t {
     UNKNOWN,
 };
 
+    static const char *msgid_t_names[] __attribute__((unused)) = {"Gyro", "Accel", "Compass", "Baro",
+                                      "GPS", "Param", "Unknown"};
+
 class Message {
 public:
     /*

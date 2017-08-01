@@ -36,6 +36,10 @@ void AP_SensorHub::registerIO(AP_SensorHub_IO *io)
 bool AP_SensorHub::handlePacket(Packet::packet_t *packet)
 {
 
+    #if SENSORHUB_DEBUG
+    hal.console->printf("AP_SensorHub - Handling %s\n", msgid_t_names[static_cast<int>(Packet::id(packet))]);
+    #endif
+
     // NOTE: These should be ordered from most to least frequent.
     switch (Packet::id(packet)) {
     case msgid_t::GYRO: {
@@ -83,13 +87,10 @@ int AP_SensorHub::read(uint8_t *buf, size_t len)
     auto decode_status = static_cast<decode_t>(decoded) == decode_t::SUCCESS;
     if (decode_status) {
         handlePacket(&p);
-#if SENSORHUB_DEBUG
 
         if (!_notFirstPacket) {
             _notFirstPacket = true;
-            hal.console->printf("AP_SensorHub: First packet received!\n");
         } else {
-
             if (p.hdr.seq != _readSeq + 1) {
                 // A packet was dropped.
 
@@ -100,15 +101,14 @@ int AP_SensorHub::read(uint8_t *buf, size_t len)
                     _packetLoss += p.hdr.seq - _readSeq;
                 }
 
-                auto elapsed = begin - _lastPacketTime;
-                hal.console->printf("AP_SensorHub: Packet Loss = %u; Elapsed: %u \n", _packetLoss, elapsed);
+                #if SENSORHUB_DEBUG
+                hal.console->printf("AP_SensorHub - Packet Lost: %u\n", _packetLoss);
+                #endif
             }
-
         }
 
         _readSeq = p.hdr.seq;
         _lastPacketTime = begin;
-#endif
     }
 
     if (_dataflash) {

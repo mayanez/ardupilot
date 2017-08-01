@@ -141,13 +141,11 @@ private:
         handler->handle(&data);
     }
 
-#if SENSORHUB_DEBUG
     bool _notFirstPacket;
     uint32_t _readSeq;
     uint32_t _packetLoss;
     uint32_t _lastPacketTime;
     float _simPacketLoss;
-#endif
 
 };
 #endif
