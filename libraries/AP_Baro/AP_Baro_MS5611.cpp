@@ -404,6 +404,8 @@ void AP_Baro_MS56XX::_calculate_5611()
     float pressure = (_D1*SENS/2097152 - OFF)/32768;
     float temperature = (TEMP + 2000) * 0.01f;
     _copy_to_frontend(_instance, pressure, temperature);
+    // TODO: This probably should be in _timer. Need to figure this out.
+    publish_raw(_instance, pressure, temperature);
 }
 
 // Calculate Temperature and compensated Pressure in real units (Celsius degrees*100, mbar*100).
@@ -439,6 +441,7 @@ void AP_Baro_MS56XX::_calculate_5607()
     float pressure = (_D1*SENS/2097152 - OFF)/32768;
     float temperature = (TEMP + 2000) * 0.01f;
     _copy_to_frontend(_instance, pressure, temperature);
+    publish_raw(_instance, pressure, temperature);
 }
 
 // Calculate Temperature and compensated Pressure in real units (Celsius degrees*100, mbar*100).
@@ -472,6 +475,7 @@ void AP_Baro_MS56XX::_calculate_5637()
     int32_t pressure = ((int64_t)raw_pressure * SENS / (int64_t)2097152 - OFF) / (int64_t)32768;
     float temperature = TEMP * 0.01f;
     _copy_to_frontend(_instance, (float)pressure, temperature);
+    publish_raw(_instance, pressure, temperature);
 }
 
 // Calculate Temperature and compensated Pressure in real units (Celsius degrees*100, mbar*100).
@@ -506,4 +510,5 @@ void AP_Baro_MS56XX::_calculate_5837()
     pressure = pressure * 10; // MS5837 only reports to 0.1 mbar
     float temperature = TEMP * 0.01f;
     _copy_to_frontend(_instance, (float)pressure, temperature);
+    publish_raw(_instance, pressure, temperature);
 }

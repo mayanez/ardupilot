@@ -579,7 +579,7 @@ bool AP_InertialSensor::set_accel_instance(uint16_t raw_sample_rate_hz, uint32_t
     _accel_id[instance].save();
 #endif
 
-    return _accel_id_ok[instance];
+    return true;
 }
 
 /*

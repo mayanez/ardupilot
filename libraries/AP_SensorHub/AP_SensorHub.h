@@ -1,6 +1,7 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
+#include <AP_SerialManager/AP_SerialManager.h>
 
 #if HAL_SENSORHUB_ENABLED
 
@@ -12,6 +13,12 @@ class DataFlash_Class;
 #include "AP_SensorHub_Handler.h"
 
 #include <AP_Common/AP_Common.h>
+
+#if SENSORHUB_DEBUG == SENSORHUB_DEBUG_FILE
+#include <unistd.h>
+#include <stdio.h>
+#include <fcntl.h>
+#endif
 
 using namespace SensorHub;
 
@@ -59,7 +66,7 @@ public:
         return nullptr;
     }
 
-    bool init();
+    bool init(AP_SerialManager &serial_manager);
 
     /*
      * Given a valid packet, determine its Message type & call appropriate
@@ -70,7 +77,7 @@ public:
     /*
      * Given a buffer decode packet & call handler.
      */
-    int read(uint8_t *buf, size_t len);
+    int read(uint8_t *buf, size_t len, uint32_t &p_len);
 
     /*
      * Forward packet to IO port.
@@ -89,13 +96,25 @@ public:
         return _sourceMode;
     }
 
-    /* Explicitly set DataFlash logging. This can be useful for debugging.
-     *  Under normal operation it should not be set to avoid overhead.
+    /*
+     * Explicitly set DataFlash logging. This can be useful for debugging.
      */
     void setDataFlash(DataFlash_Class *dataflash) {
         _dataflash = dataflash;
     }
 
+    void start() {
+        _vehicle_ready = true;
+    }
+
+    bool isReady() {
+        return _vehicle_ready;
+    }
+
+#if SENSORHUB_DEBUG == SENSORHUB_DEBUG_FILE
+    AP_SensorHub_IO *shub_io_debug_file_read;
+    AP_SensorHub_IO *shub_io_debug_file_write;
+#endif
 
 private:
     static bool _initialized;
@@ -103,6 +122,8 @@ private:
     DataFlash_Class *_dataflash;
 
     bool _sourceMode;
+
+    bool _vehicle_ready;
 
     AP_SensorHub_IO *_port[SENSORHUB_MAX_PORTS];
     int _io_count;
@@ -142,7 +163,7 @@ private:
     }
 
     bool _notFirstPacket;
-    uint32_t _readSeq;
+    Packet::seq_t _readSeq;
     uint32_t _packetLoss;
     uint32_t _lastPacketTime;
     float _simPacketLoss;

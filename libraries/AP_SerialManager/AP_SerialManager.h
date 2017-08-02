@@ -70,7 +70,7 @@
 #define AP_SERIALMANAGER_ULANDING_BUFSIZE_TX     128
 
 #if HAL_SENSORHUB_ENABLED
-#define AP_SERIALMANAGER_SENSORHUB_BAUD 115200 // TODO: To be changed when on
+#define AP_SERIALMANAGER_SENSORHUB_BAUD 1152000 // TODO: To be changed when on
                                                // real hardware.
 #define AP_SERIALMANAGER_SENSORHUB_BUFSIZE_RX 512 // NOTE: Refer to
                                                   // Packet::MAX_PACKET_LEN

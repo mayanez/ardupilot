@@ -7,8 +7,7 @@ extern const AP_HAL::HAL& hal;
 
 bool CompassMessageHandler::isValid(CompassMessage::data_t *data)
 {
-    return !std::isnan(data->magx) && !std::isnan(data->magy) && !std::isnan(data->magz)
-        && !std::isinf(data->magx) && !std::isinf(data->magy) && !std::isinf(data->magz);
+    return true;
 }
 
 void CompassMessageHandler::handle(CompassMessage::data_t *data)
@@ -20,8 +19,9 @@ void CompassMessageHandler::handle(CompassMessage::data_t *data)
 
             if (!instance_registered) {
                 // There are messages being received by more than one compass.
-                ins = _backend->register_compass();
+                _backend->register_compass();
                 _backend->_instance[ins] = true;
+                hal.console->printf("COMPASS: Register New. Inst: %u\n", ins);
             }
 
             // NOTE: Fields are already rotated.

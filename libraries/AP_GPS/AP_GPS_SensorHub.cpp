@@ -1,4 +1,5 @@
 #include "AP_GPS_SensorHub.h"
+#include <AP_Math/AP_Math.h>
 
 #if HAL_SENSORHUB_ENABLED
 
@@ -6,18 +7,19 @@ extern const AP_HAL::HAL& hal;
 
 bool GPSMessageHandler::isValid(GPSMessage::data_t *data)
 {
-    return !std::isnan(data->ground_speed)
-        && !std::isinf(data->ground_speed)
-        && !std::isnan(data->ground_course)
-        && !std::isinf(data->ground_course)
-        && !std::isnan(data->velocityx) && !std::isnan(data->velocityy) && !std::isnan(data->velocityz)
-        && !std::isinf(data->velocityx) && !std::isinf(data->velocityy) && !std::isinf(data->velocityz)
-        && !std::isnan(data->speed_accuracy)
-        && !std::isinf(data->speed_accuracy)
-        && !std::isnan(data->horizontal_accuracy)
-        && !std::isinf(data->horizontal_accuracy)
-        && !std::isnan(data->vertical_accuracy)
-        && !std::isinf(data->vertical_accuracy);
+    // return !std::isnan(data->ground_speed)
+    //     && !std::isinf(data->ground_speed)
+    //     && !std::isnan(data->ground_course)
+    //     && !std::isinf(data->ground_course)
+    //     && !std::isnan(data->velocityx) && !std::isnan(data->velocityy) && !std::isnan(data->velocityz)
+    //     && !std::isinf(data->velocityx) && !std::isinf(data->velocityy) && !std::isinf(data->velocityz)
+    //     && !std::isnan(data->speed_accuracy)
+    //     && !std::isinf(data->speed_accuracy)
+    //     && !std::isnan(data->horizontal_accuracy)
+    //     && !std::isinf(data->horizontal_accuracy)
+    //     && !std::isnan(data->vertical_accuracy)
+    //     && !std::isinf(data->vertical_accuracy);
+    return true;
 }
 
 void GPSMessageHandler::handle(GPSMessage::data_t *data)

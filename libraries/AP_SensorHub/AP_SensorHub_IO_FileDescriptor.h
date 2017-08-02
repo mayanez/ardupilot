@@ -26,21 +26,7 @@ public:
 
     virtual void read();
 
-    virtual void write(Packet::packet_t *packet, size_t len)
-    {
-        if (!_isOutputInitialized()) {
-            return;
-        }
-
-        if (_sem_write->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
-            Packet::commit(packet, &writeBuffer[0], packet->hdr.len);
-            auto write_bytes = ::write(_outputFd, &writeBuffer, len);
-            if (write_bytes != len) {
-                _write_error++;
-            }
-            _sem_write->give();
-        }
-    }
+    virtual bool write(Packet::packet_t *packet, size_t len);
 
 private:
     bool _isInputInitialized() {
@@ -50,8 +36,17 @@ private:
     bool _isOutputInitialized() {
         return _shub && _outputFd > 0;
     }
+    // NOTE:
+    // Copter (px4-v2):
+    // 1000/s = accel @ 1kHz Invensense + 1000/s LSM9DS0
+    // 1000/s = gyro @ 1kHz  Invensense + 760/s LSM9DS0
+    // 10/s = baro @ 10Hz
+    // 75/s = compass @ 75Hz HMC5843
+    // 50/s = gps @ 50Hz
+    // ~3895 packets/s
 
-    ByteBuffer recvBuffer {2*Packet::MAX_PACKET_LEN};
+    // NOTE: read() is called at ~1kHz. We must buffer accordingly.
+    ByteBuffer recvBuffer {10*Packet::MAX_PACKET_LEN};
     uint8_t dataBuffer[Packet::MAX_PACKET_LEN];
     uint8_t writeBuffer[Packet::MAX_PACKET_LEN];
 

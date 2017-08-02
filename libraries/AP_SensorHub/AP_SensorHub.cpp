@@ -4,6 +4,19 @@
 
 #if HAL_SENSORHUB_ENABLED
 
+#include "AP_SensorHub_IO_FileDescriptor.h"
+
+#if SENSORHUB_DEBUG
+static const uint8_t N_SAMPLES = 100;
+static const uint8_t MSG_TYPES = static_cast<uint8_t>(msgid_t::LAST_MSG_ENTRY);
+static uint32_t last_packet_us[MSG_TYPES];
+static uint32_t packet_us_sample[MSG_TYPES][N_SAMPLES];
+static uint32_t packet_us_sum[MSG_TYPES];
+static uint32_t avg_iters[MSG_TYPES] = {1,1,1,1,1,1,1};
+static uint32_t handle_iters[MSG_TYPES];
+static uint32_t last_print_us;
+#endif
+
 extern const AP_HAL::HAL& hal;
 
 using namespace SensorHub;
@@ -17,9 +30,48 @@ AP_SensorHub *AP_SensorHub::init_instance()
     return &_instance;
 }
 
-bool AP_SensorHub::init()
+bool AP_SensorHub::init(AP_SerialManager &serial_manager)
 {
-//TODO: Add perf when AP_Perf PR is merged.
+    //TODO: Add perf when AP_Perf PR is merged.
+
+    auto shub_uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_SENSORHUB, 0);
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SENSORHUB_SINK
+    // TODO: Make parameter
+    this->setSinkMode();
+
+    #if SENSORHUB_DEBUG == SENSORHUB_DEBUG_FILE
+    int read_fd = open("sink_shub_read.bin", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    auto io_file_read = new AP_SensorHub_IO_FileDescriptor();
+    io_file_read->registerOutput(read_fd);
+    io_file_read->setSensorHub(this);
+    shub_io_debug_file_read = io_file_read;
+    #endif
+
+#else
+    // TODO: Make parameter
+    this->setSourceMode();
+
+    #if SENSORHUB_DEBUG == SENSORHUB_DEBUG_FILE
+    int write_fd = open("source_shub_write.bin", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    auto io_file_write = new AP_SensorHub_IO_FileDescriptor();
+    io_file_write->registerOutput(write_fd);
+    io_file_write->setSensorHub(this);
+    shub_io_debug_file_write = io_file_write;
+    #endif
+#endif
+
+    auto shub_io = new AP_SensorHub_IO_FileDescriptor();
+    auto uart_fd = shub_uart->claim();
+    shub_io->registerInput(uart_fd);
+    shub_io->registerOutput(uart_fd);
+    // TODO: For now the source does not process messages.
+    if (!this->isSource()) {
+        hal.scheduler->register_timer_process(FUNCTOR_BIND(shub_io, &AP_SensorHub_IO_FileDescriptor::read, void));
+    }
+
+    this->registerIO(shub_io);
+
     return true;
 }
 
@@ -37,7 +89,44 @@ bool AP_SensorHub::handlePacket(Packet::packet_t *packet)
 {
 
     #if SENSORHUB_DEBUG
-    hal.console->printf("AP_SensorHub - Handling %s\n", msgid_t_names[static_cast<int>(Packet::id(packet))]);
+    uint8_t id = static_cast<uint8_t>(Packet::id(packet));
+    auto now = AP_HAL::micros();
+
+    // TODO: Add min/max tracking per message.
+
+    uint32_t diff;
+    if (now > last_packet_us[id]) {
+        diff = now - last_packet_us[id];
+    } else {
+        diff = last_packet_us[id] - now;
+    }
+
+    if (avg_iters[id] < N_SAMPLES) {
+        packet_us_sample[id][avg_iters[id]++] = diff;
+        packet_us_sum[id] += diff;
+    } else {
+        auto oldest = packet_us_sample[id][avg_iters[id] % N_SAMPLES];
+        packet_us_sum[id] -= oldest;
+        packet_us_sum[id] += diff;
+        packet_us_sample[id][avg_iters[id] % N_SAMPLES] = diff;
+        avg_iters[id]++;
+    }
+
+    handle_iters[id]++;
+    last_packet_us[id] = now;
+
+    if (now - last_print_us > 1000*1000) {
+        for (int i = 0; i < MSG_TYPES; i++) {
+            uint32_t div = avg_iters[i] > N_SAMPLES ? N_SAMPLES : avg_iters[i];
+            uint64_t avg = packet_us_sum[i] / div;
+            #if SENSORHUB_DEBUG == SENSORHUB_DEBUG_CONSOLE
+            if (avg > 0) {
+                // hal.console->printf("AP_SensorHub - handlePacket Id: %s Avg: %u (recv)\n", msgid_t_names[i], avg);
+            }
+            #endif
+        }
+        last_print_us = now;
+    }
     #endif
 
     // NOTE: These should be ordered from most to least frequent.
@@ -79,7 +168,7 @@ bool AP_SensorHub::handlePacket(Packet::packet_t *packet)
     }
 }
 
-int AP_SensorHub::read(uint8_t *buf, size_t len)
+int AP_SensorHub::read(uint8_t *buf, size_t len, uint32_t &p_len)
 {
     Packet::packet_t p;
     auto begin = AP_HAL::micros64();
@@ -87,28 +176,34 @@ int AP_SensorHub::read(uint8_t *buf, size_t len)
     auto decode_status = static_cast<decode_t>(decoded) == decode_t::SUCCESS;
     if (decode_status) {
         handlePacket(&p);
+        p_len = Packet::length(&p);
 
-        if (!_notFirstPacket) {
-            _notFirstPacket = true;
-        } else {
-            if (p.hdr.seq != _readSeq + 1) {
-                // A packet was dropped.
-
-                if (p.hdr.seq < _readSeq) {
-                    // Seq has wrapped around.
-                    _packetLoss += UINT32_MAX - _readSeq;
-                } else {
-                    _packetLoss += p.hdr.seq - _readSeq;
+        // NOTE: Wait until vehicle is fully initialized.
+        if (isReady()) {
+            if (!_notFirstPacket) {
+                _notFirstPacket = true;
+            } else {
+                if (p.hdr.seq != (Packet::seq_t)(_readSeq + 1)) {
+                    // NOTE: Can't arbitrarily say the number of lost packets.
+                    // However, we can count the instances in which packets
+                    // are not received sequentially.
+                    // This should be sufficient for our needs.
+                    _packetLoss++;
+                    #if SENSORHUB_DEBUG == SENSORHUB_DEBUG_CONSOLE
+                    hal.console->printf("AP_SensorHub - Packet Loss Event Count: %u\n", _packetLoss);
+                    #endif
                 }
-
-                #if SENSORHUB_DEBUG
-                hal.console->printf("AP_SensorHub - Packet Lost: %u\n", _packetLoss);
-                #endif
             }
-        }
 
-        _readSeq = p.hdr.seq;
-        _lastPacketTime = begin;
+            #if SENSORHUB_DEBUG == SENSORHUB_DEBUG_FILE
+            if (shub_io_debug_file_read) {
+                shub_io_debug_file_read->write(&p, Packet::length(&p));
+            }
+            #endif
+
+            _readSeq = p.hdr.seq;
+            _lastPacketTime = begin;
+        }
     }
 
     if (_dataflash) {
@@ -130,28 +225,38 @@ int AP_SensorHub::read(uint8_t *buf, size_t len)
 }
 
 void AP_SensorHub::write(Packet::packet_t *packet) {
-    auto begin = AP_HAL::micros64();
 
     for (int i = 0; i < SENSORHUB_MAX_PORTS; i++) {
         if (_port[i]) {
-            _port[i]->write(packet, Packet::length(packet));
+            auto begin = AP_HAL::micros64();
+            auto success = _port[i]->write(packet, Packet::length(packet));
+            if (success) {
+
+                #if SENSORHUB_DEBUG == SENSORHUB_DEBUG_FILE
+                if (shub_io_debug_file_write) {
+                    shub_io_debug_file_write->write(packet, Packet::length(packet));
+                }
+                #endif
+            }
+
+            if (_dataflash) {
+                auto now = AP_HAL::micros64();
+                auto processTime = now - begin;
+                struct log_SHUB_RW pkt = {
+                    LOG_PACKET_HEADER_INIT((uint8_t)(LOG_SHUB_RW_MSG)),
+                    time_us : now,
+                    process_time : processTime,
+                    packet_loss : _packetLoss,
+                    msg_id : static_cast<uint8_t>(Packet::id(packet)),
+                    status : success,
+                    rw : 1
+                };
+                _dataflash->WriteBlock(&pkt, sizeof(pkt));
+            }
+
         }
     }
 
-    if (_dataflash) {
-        auto now = AP_HAL::micros64();
-        auto processTime = now - begin;
-        struct log_SHUB_RW pkt = {
-            LOG_PACKET_HEADER_INIT((uint8_t)(LOG_SHUB_RW_MSG)),
-            time_us : now,
-            process_time : processTime,
-            packet_loss : _packetLoss,
-            msg_id : static_cast<uint8_t>(Packet::id(packet)),
-            status : 1, // TODO: consider making write return a value to use.
-            rw : 1
-        };
-        _dataflash->WriteBlock(&pkt, sizeof(pkt));
-    }
 }
 
 #endif

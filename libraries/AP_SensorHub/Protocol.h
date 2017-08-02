@@ -18,7 +18,11 @@ public:
     static const uint8_t MAGIC = 0xFC;
     static const uint8_t VERSION = 0;
 
-    static uint32_t sequence_counter;
+    // NOTE: This should take into account the rate at which packets are sent.
+    typedef uint16_t seq_t;
+    static const seq_t MAX_SEQ_COUNT = UINT16_MAX;
+
+    static seq_t sequence_counter;
 
     // float conforms to IEEE 754.
     // NOTE: May not be entirely reliable, but should be sufficient.
@@ -28,10 +32,9 @@ public:
     typedef struct PACKED {
         uint8_t magic;
         uint8_t ver;
-        uint8_t len;
+        uint8_t len; // TODO: We could get rid of the length if needed.
         msgid_t id;
-        uint32_t seq;
-        uint32_t timestamp;
+        seq_t seq;
     } hdr_t;
 
     typedef uint16_t crc_t;
@@ -70,6 +73,7 @@ public:
      */
     static inline void commit(packet_t *p, uint8_t *buf, size_t len)
     {
+        // TODO: Turn this into single memcpy.
         memcpy(buf, &p->hdr, sizeof(hdr_t));
         memcpy(buf + sizeof(hdr_t), p->data, p->hdr.len);
         memcpy(buf + sizeof(hdr_t) + p->hdr.len, &p->crc, sizeof(crc_t));
@@ -108,6 +112,7 @@ enum class msgid_t : uint8_t {
     GPS,
     PARAM,
     UNKNOWN,
+    LAST_MSG_ENTRY,
 };
 
     static const char *msgid_t_names[] __attribute__((unused)) = {"Gyro", "Accel", "Compass", "Baro",
@@ -140,6 +145,11 @@ public:
 
 protected:
     Packet::packet_t _packet;
+
+    // TODO: Consider templates or using wider datatype if necessary.
+    static float linearScale(float x, float min, float max, float scale_min, float scale_max) {
+        return ((scale_max - scale_min)*(x - min))/(max - min) + scale_min;
+    }
 };
 
 class UnknownMessage : public Message {
@@ -155,9 +165,19 @@ public:
 
 class BaroMessage : public Message {
 public:
+
+    using temp_t = int16_t;
+    using pressure_t = uint16_t;
+
+    static const pressure_t PRESSURE_T_MAX = UINT16_MAX;
+    static const pressure_t PRESSURE_T_MIN = 0;
+
+    static const temp_t TEMP_T_MAX = INT16_MAX;
+    static const temp_t TEMP_T_MIN = INT16_MIN;
+
     typedef struct PACKED {
-        float pressure;
-        float temperature;
+        temp_t temperature;
+        pressure_t pressure;
         uint8_t instance;
     } data_t;
 
@@ -167,6 +187,22 @@ public:
     static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
 
     static const msgid_t ID = msgid_t::BARO;
+
+    static const uint16_t PRESSURE_SCALE = 100;
+    static constexpr float PRESSURE_SCALE_ENCODE = 1.0/PRESSURE_SCALE;
+    static constexpr float PRESSURE_SCALE_DECODE = PRESSURE_SCALE;
+
+    // NOTE: in mbar
+    static constexpr pressure_t PRESSURE_MIN = 10;
+    static constexpr pressure_t PRESSURE_MAX = 1200;
+
+    static const uint16_t TEMPERATURE_SCALE = 100;
+    static constexpr float TEMPERATURE_SCALE_ENCODE = TEMPERATURE_SCALE;
+    static constexpr float TEMPERATURE_SCALE_DECODE = 1.0/TEMPERATURE_SCALE;
+
+    // NOTE: in C*100
+    static const temp_t TEMPERATURE_MIN = -40 * TEMPERATURE_SCALE_ENCODE;
+    static const temp_t TEMPERATURE_MAX = 85 * TEMPERATURE_SCALE_ENCODE;
 
     BaroMessage() {
         _packet.data = reinterpret_cast<uint8_t *>(&_data);
@@ -179,12 +215,14 @@ public:
 
     void setPressure(float pressure)
     {
-        _data.pressure = pressure;
+        auto scaled_pressure = pressureScaleToPacket(pressure);
+        _data.pressure = scaled_pressure;
     }
 
     void setTemperature(float temperature)
     {
-        _data.temperature = temperature;
+        auto scaled_temp = temperatureScaleToPacket(temperature);
+        _data.temperature = scaled_temp;
     }
 
     virtual Packet::packet_t *encode()
@@ -193,6 +231,21 @@ public:
         return &_packet;
     }
 
+    static float pressureScaleFromPacket(pressure_t data) {
+        return Message::linearScale(data, PRESSURE_T_MIN, PRESSURE_T_MAX, PRESSURE_MIN, PRESSURE_MAX) * PRESSURE_SCALE_DECODE;
+    }
+
+    static pressure_t pressureScaleToPacket(float data) {
+        return static_cast<pressure_t>(Message::linearScale(data * PRESSURE_SCALE_ENCODE, PRESSURE_MIN, PRESSURE_MAX, PRESSURE_T_MIN, PRESSURE_T_MAX));
+    }
+
+    static float temperatureScaleFromPacket(temp_t data) {
+        return Message::linearScale(data, TEMP_T_MIN, TEMP_T_MAX, TEMPERATURE_MIN, TEMPERATURE_MAX) * TEMPERATURE_SCALE_DECODE;
+    }
+
+    static temp_t temperatureScaleToPacket(float data) {
+        return static_cast<temp_t>(Message::linearScale(data * TEMPERATURE_SCALE_ENCODE, TEMPERATURE_MIN, TEMPERATURE_MAX, TEMP_T_MIN, TEMP_T_MAX));
+    }
 
 private:
     data_t _data;
@@ -200,17 +253,29 @@ private:
 
 class GyroMessage : public Message {
 public:
+
+    using gyro_t = int16_t;
+    static const gyro_t GYRO_T_MAX = INT16_MAX;
+    static const gyro_t GYRO_T_MIN = INT16_MIN;
+
     typedef struct PACKED {
-        uint64_t sample_us;
-        uint32_t id;
-        float gyrox;
-        float gyroy;
-        float gyroz;
         float dt;
+        gyro_t gyrox;
+        gyro_t gyroy;
+        gyro_t gyroz;
+        uint8_t devtype;
         uint8_t instance;
     } data_t;
 
     static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN, "PACKET DATA LENGTH EXCEEDED");
+
+    static constexpr float GYRO_SCALE = 1000;
+    static constexpr float GYRO_SCALE_ENCODE = GYRO_SCALE;
+    static constexpr float GYRO_SCALE_DECODE = 1.0/GYRO_SCALE;
+
+    // NOTE: +/- 2000 degrees
+    static constexpr float GYRO_MAX = 34.906 * GYRO_SCALE_ENCODE;
+    static constexpr float GYRO_MIN = -34.906 * GYRO_SCALE_ENCODE;
 
     static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
     static const msgid_t ID = msgid_t::GYRO;
@@ -226,19 +291,17 @@ public:
 
     void setId(uint32_t id)
     {
-        _data.id = id;
+        _data.devtype = id >> 16;
     }
 
     void setGyro(const Vector3f &vec)
     {
-        _data.gyrox = vec.x;
-        _data.gyroy = vec.y;
-        _data.gyroz = vec.z;
-    }
-
-    void setSampleUs(uint64_t sample_us)
-    {
-        _data.sample_us = sample_us;
+        auto scaled_x = scaleToPacket(vec.x);
+        auto scaled_y = scaleToPacket(vec.y);
+        auto scaled_z = scaleToPacket(vec.z);
+        _data.gyrox = scaled_x;
+        _data.gyroy = scaled_y;
+        _data.gyroz = scaled_z;
     }
 
     void setDt(float dt)
@@ -252,22 +315,42 @@ public:
         return &_packet;
     }
 
+    static float scaleFromPacket(gyro_t gyro) {
+        return Message::linearScale(gyro, GYRO_T_MIN, GYRO_T_MAX, GYRO_MIN, GYRO_MAX) * GYRO_SCALE_DECODE;
+    }
+
+    static gyro_t scaleToPacket(float gyro) {
+        return static_cast<gyro_t>(Message::linearScale(gyro * GYRO_SCALE_ENCODE, GYRO_MIN, GYRO_MAX, GYRO_T_MIN, GYRO_T_MAX));
+    }
+
 private:
     data_t _data;
 };
+
 class AccelMessage : public Message {
 public:
+    using accel_t = int16_t;
+    static const accel_t ACCEL_T_MAX = INT16_MAX;
+    static const accel_t ACCEL_T_MIN = INT16_MIN;
+
     typedef struct PACKED {
-        uint64_t sample_us;
-        uint32_t id;
-        float accelx;
-        float accely;
-        float accelz;
         float dt;
+        accel_t accelx;
+        accel_t accely;
+        accel_t accelz;
+        uint8_t devtype;
         uint8_t instance;
     } data_t;
 
     static_assert(sizeof(data_t) < Packet::MAX_DATA_LEN, "PACKET DATA LENGTH EXCEEDED");
+
+    static constexpr float ACCEL_SCALE = 1000;
+    static constexpr float ACCEL_SCALE_ENCODE = ACCEL_SCALE;
+    static constexpr float ACCEL_SCALE_DECODE = 1.0/ACCEL_SCALE;
+
+    // NOTE: +/- 16g
+    static constexpr float ACCEL_MAX = 156.8 * ACCEL_SCALE_ENCODE;
+    static constexpr float ACCEL_MIN = -156.8 * ACCEL_SCALE_ENCODE;
 
     static const size_t PACKET_LENGTH = Packet::EMPTY_PACKET_LEN + sizeof(data_t);
     static const msgid_t ID = msgid_t::ACCEL;
@@ -283,19 +366,17 @@ public:
 
     void setId(uint32_t id)
     {
-        _data.id = id;
+        _data.devtype = id >> 16;
     }
 
     void setAccel(const Vector3f &vec)
     {
-        _data.accelx = vec.x;
-        _data.accely = vec.y;
-        _data.accelz = vec.z;
-    }
-
-    void setSampleUs(uint64_t sample_us)
-    {
-        _data.sample_us = sample_us;
+        auto scaled_x = scaleToPacket(vec.x);
+        auto scaled_y = scaleToPacket(vec.y);
+        auto scaled_z = scaleToPacket(vec.z);
+        _data.accelx = scaled_x;
+        _data.accely = scaled_y;
+        _data.accelz = scaled_z;
     }
 
     void setDt(float dt)
@@ -309,6 +390,14 @@ public:
         return &_packet;
     }
 
+    static float scaleFromPacket(accel_t accel) {
+        return Message::linearScale(accel, ACCEL_T_MIN, ACCEL_T_MAX, ACCEL_MIN, ACCEL_MAX) * ACCEL_SCALE_DECODE;
+    }
+
+    static accel_t scaleToPacket(float accel) {
+        return static_cast<int16_t>(Message::linearScale(accel * ACCEL_SCALE_ENCODE, ACCEL_MIN, ACCEL_MAX, ACCEL_T_MIN, ACCEL_T_MAX));
+    }
+
 private:
     data_t _data;
 };
@@ -316,7 +405,6 @@ private:
 class CompassMessage : public Message {
 public:
 
-    // These are the raw fields in body frame.
     typedef struct {
         float magx;
         float magy;
@@ -337,6 +425,7 @@ public:
         _data.instance = instance;
     }
 
+    // NOTE: These are the raw fields in body frame.
     void setField(const Vector3f &field) {
         _data.magx = field.x;
         _data.magy = field.y;
@@ -356,9 +445,8 @@ private:
 class GPSMessage : public Message {
 public:
 
+    // TODO: Optimize sizes here! its 50Hz in copter.
     typedef struct PACKED {
-        AP_GPS::GPS_Status status;
-        Location location;
         float ground_speed;
         float ground_course;
         float velocityx;
@@ -367,10 +455,12 @@ public:
         float speed_accuracy;
         float horizontal_accuracy;
         float vertical_accuracy;
+        Location location;
         uint32_t time_week_ms;
         uint16_t time_week;
         uint16_t hdop;
         uint16_t vdop;
+        AP_GPS::GPS_Status status;
         uint8_t num_sats;
         uint8_t instance;
         bool have_vertical_velocity:1;

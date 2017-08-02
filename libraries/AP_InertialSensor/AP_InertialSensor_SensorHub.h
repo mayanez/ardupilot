@@ -54,7 +54,7 @@ public:
     static AP_InertialSensor_Backend *detect(AP_InertialSensor &imu);
 
     typedef struct {
-        uint32_t id;
+        uint8_t devtype;
         bool registered;
     } sensor_info;
 

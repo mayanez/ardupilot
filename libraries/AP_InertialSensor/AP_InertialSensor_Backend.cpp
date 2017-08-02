@@ -175,7 +175,6 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
         GyroMessage msg;
         msg.setInstance(instance);
         msg.setId(_imu._gyro_id[instance]);
-        msg.setSampleUs(sample_us);
         msg.setGyro(gyro);
         msg.setDt(dt);
         auto packet = msg.encode();
@@ -312,7 +311,6 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
         msg.setInstance(instance);
         msg.setId(_imu._accel_id[instance]);
         msg.setAccel(accel);
-        msg.setSampleUs(sample_us);
         msg.setDt(dt);
         auto packet = msg.encode();
         _shub->write(packet);

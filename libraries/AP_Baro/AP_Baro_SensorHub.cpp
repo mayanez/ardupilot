@@ -9,7 +9,7 @@ extern const AP_HAL::HAL& hal;
 
 bool BaroMessageHandler::isValid(BaroMessage::data_t *data)
 {
-    return !std::isnan(data->pressure) && !std::isnan(data->temperature);
+    return true;
 }
 
 void BaroMessageHandler::handle(BaroMessage::data_t *data)
@@ -20,12 +20,13 @@ void BaroMessageHandler::handle(BaroMessage::data_t *data)
             auto instance_registered = _backend->_instance[ins];
 
             if (!instance_registered) {
-                ins = _backend->_frontend.register_sensor();
+                _backend->_frontend.register_sensor();
                 _backend->_instance[ins] = true;
+                hal.console->printf("BARO: Register New. Inst: %u\n", ins);
             }
 
-            _backend->_pressure[ins] = data->pressure;
-            _backend->_temperature[ins] = data->temperature;
+            _backend->_pressure[ins] = BaroMessage::pressureScaleFromPacket(data->pressure);
+            _backend->_temperature[ins] = BaroMessage::temperatureScaleFromPacket(data->temperature);
             _backend->_last_timestamp[ins] = AP_HAL::micros64();
             _backend->publish_raw(ins, _backend->_pressure[ins], _backend->_temperature[ins]);
             _count++;

@@ -16,7 +16,7 @@ public:
     AP_SensorHub_IO();
 
     virtual void read() = 0;
-    virtual void write(Packet::packet_t *packet, size_t len) = 0;
+    virtual bool write(Packet::packet_t *packet, size_t len) = 0;
 
     void setSensorHub(AP_SensorHub *shub) {
         _shub = shub;

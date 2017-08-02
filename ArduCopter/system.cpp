@@ -338,6 +338,10 @@ void Copter::init_ardupilot()
 
     // flag that initialisation has completed
     ap.initialised = true;
+
+#if HAL_SENSORHUB_ENABLED
+    shub->start();
+#endif
 }
 
 
@@ -735,19 +739,6 @@ void Copter::setup_shub()
     gps_serial_protocol = AP_SerialManager::SerialProtocol_SENSORHUB;
 #endif
 
-    auto shub_uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_SENSORHUB, 0);
-    AP_SensorHub_IO_Stream *shub_stream = new AP_SensorHub_IO_Stream();
-    shub_stream->registerInputStream(shub_uart);
-    shub_stream->registerOutputStream(shub_uart);
-
-    shub->registerIO(shub_stream);
-    // TODO: Move this to parameter
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_SENSORHUB_SINK
-    shub->setSinkMode();
-#else
-    shub->setSourceMode();
-#endif
-
-    hal.scheduler->register_timer_process(FUNCTOR_BIND(shub_stream, &AP_SensorHub_IO_Stream::read, void));
+    shub->init(serial_manager);
 }
 #endif
